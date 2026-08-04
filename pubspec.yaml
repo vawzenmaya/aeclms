@@ -29,7 +29,6 @@ dependencies:
   reactive_forms: ^18.2.2
 
   # Files / documents (for uploading loan forms, IDs, etc.)
-  file_picker: ^11.0.2
   image_picker: ^1.2.3
 
   # Notifications (local + push later via Edge Function -> FCM)
@@ -38,6 +37,8 @@ dependencies:
   # Utilities
   intl: ^0.20.2
   equatable: ^2.1.0
+  url_launcher: ^6.3.2
+  file_picker: ^11.0.3
 
 dev_dependencies:
   flutter_test:

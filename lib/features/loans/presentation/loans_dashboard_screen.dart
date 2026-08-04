@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 
 import '../../auth/data/auth_service.dart';
+import '../../notifications/data/notifications_repository.dart';
+import '../../notifications/presentation/notifications_screen.dart';
 import '../data/loan_repository.dart';
 import 'application_form_screen.dart';
 import 'loan_detail_screen.dart';
@@ -14,11 +16,13 @@ class LoansDashboardScreen extends StatefulWidget {
     required this.repository,
     required this.profile,
     required this.authService,
+    required this.notificationsRepository,
   });
 
   final LoanRepository repository;
   final Profile profile;
   final AuthService authService;
+  final NotificationsRepository notificationsRepository;
 
   @override
   State<LoansDashboardScreen> createState() => _LoansDashboardScreenState();
@@ -29,6 +33,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
   List<Map<String, dynamic>> _mine = [];
   List<Map<String, dynamic>> _awaitingAction = [];
   List<Map<String, dynamic>> _history = [];
+  int _unreadCount = 0;
 
   @override
   void initState() {
@@ -45,9 +50,11 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
         profileId: widget.profile.id,
         communityId: widget.profile.communityId!,
       ),
+      widget.notificationsRepository.fetchUnreadCount(),
     ]);
     final loans = results[0] as List<Map<String, dynamic>>;
     final myStages = results[1] as Set<String>;
+    final unread = results[2] as int;
 
     final mine = <Map<String, dynamic>>[];
     final awaiting = <Map<String, dynamic>>[];
@@ -74,6 +81,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
       _mine = mine;
       _awaitingAction = awaiting;
       _history = history;
+      _unreadCount = unread;
       _loading = false;
     });
   }
@@ -99,6 +107,26 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
       appBar: AppBar(
         title: const Text('Loan Management System'),
         actions: [
+          IconButton(
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => NotificationsScreen(
+                    repository: widget.notificationsRepository,
+                    loanRepository: widget.repository,
+                    profile: widget.profile,
+                  ),
+                ),
+              );
+              _load();
+            },
+            icon: Badge(
+              label: Text('$_unreadCount'),
+              isLabelVisible: _unreadCount > 0,
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            tooltip: 'Notifications',
+          ),
           IconButton(
             onPressed: () => widget.authService.signOut(),
             icon: const Icon(Icons.logout_rounded),

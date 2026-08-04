@@ -7,6 +7,7 @@ import '../../../core/utils/amount_to_words.dart';
 import '../../auth/data/auth_service.dart';
 import '../data/loan_repository.dart';
 import '../domain/loan_calculations.dart';
+import 'loan_detail_screen.dart';
 import 'widgets/repayment_preview_card.dart';
 
 class ApplicationFormScreen extends StatefulWidget {
@@ -15,51 +16,78 @@ class ApplicationFormScreen extends StatefulWidget {
     required this.repository,
     required this.profile,
     required this.currentUserEmail,
+    this.existingLoan,
   });
 
   final LoanRepository repository;
   final Profile profile;
   final String? currentUserEmail;
+  /// If provided, the form edits this draft instead of creating a new loan.
+  final Map<String, dynamic>? existingLoan;
 
   @override
   State<ApplicationFormScreen> createState() => _ApplicationFormScreenState();
 }
 
 class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
-  final _formKey = GlobalKey<FormState>();
+  // Navigation State
+  int _currentStep = 0;
+  final int _totalSteps = 6;
+
+  // Individual form keys for step-by-step validation
+  final _step1Key = GlobalKey<FormState>();
+  final _step2Key = GlobalKey<FormState>();
+  final _step3Key = GlobalKey<FormState>();
+  final _step4Key = GlobalKey<FormState>();
 
   // Loan classification
-  String _loanType = 'new'; // new | topup
-  String _loanCategory = 'normal'; // emergency | normal
-  String _applicantCategory = 'member'; // member | non_member
+  late String _loanType = widget.existingLoan?['loan_type'] as String? ?? 'new';
+  late String _loanCategory = widget.existingLoan?['loan_category'] as String? ?? 'normal';
+  late String _applicantCategory = widget.existingLoan?['category'] as String? ?? 'member';
 
   // Controllers
-  late final _fullNameCtrl = TextEditingController(text: widget.profile.fullName);
-  late final _emailCtrl = TextEditingController(text: widget.currentUserEmail ?? '');
-  late final _phoneCtrl = TextEditingController(text: widget.profile.phone ?? '');
-  late final _employeeNumberCtrl =
-      TextEditingController(text: widget.profile.employeeNumber ?? '');
-  final _amountCtrl = TextEditingController();
-  final _amountInWordsCtrl = TextEditingController();
-  final _purposeCtrl = TextEditingController();
-  final _securityDescCtrl = TextEditingController();
-  final _securityValueCtrl = TextEditingController();
-  final _netPayCtrl = TextEditingController();
-  late final _bankHolderCtrl = TextEditingController(text: widget.profile.fullName);
-  final _bankNameCtrl = TextEditingController();
-  final _bankAccountCtrl = TextEditingController();
-  final _bankSortCodeCtrl = TextEditingController();
-  final _bankSwiftCtrl = TextEditingController();
+  late final _fullNameCtrl =
+      TextEditingController(text: widget.existingLoan?['full_name'] as String? ?? widget.profile.fullName);
+  late final _emailCtrl = TextEditingController(
+      text: widget.existingLoan?['email'] as String? ?? widget.currentUserEmail ?? '');
+  late final _phoneCtrl = TextEditingController(
+      text: widget.existingLoan?['phone'] as String? ?? widget.profile.phone ?? '');
+  late final _employeeNumberCtrl = TextEditingController(
+      text: widget.existingLoan?['employee_number'] as String? ?? widget.profile.employeeNumber ?? '');
+  late final _amountCtrl = TextEditingController(
+      text: (widget.existingLoan?['amount_requested'] as num?)?.toString() ?? '');
+  late final _amountInWordsCtrl =
+      TextEditingController(text: widget.existingLoan?['amount_in_words'] as String? ?? '');
+  late final _purposeCtrl = TextEditingController(text: widget.existingLoan?['purpose'] as String? ?? '');
+  late final _securityDescCtrl =
+      TextEditingController(text: widget.existingLoan?['security_description'] as String? ?? '');
+  late final _securityValueCtrl = TextEditingController(
+      text: (widget.existingLoan?['security_estimated_value'] as num?)?.toString() ?? '');
+  late final _netPayCtrl =
+      TextEditingController(text: (widget.existingLoan?['net_pay'] as num?)?.toString() ?? '');
+  late final _bankHolderCtrl = TextEditingController(
+      text: widget.existingLoan?['bank_account_holder_name'] as String? ?? widget.profile.fullName);
+  late final _bankNameCtrl = TextEditingController(text: widget.existingLoan?['bank_name'] as String? ?? '');
+  late final _bankAccountCtrl =
+      TextEditingController(text: widget.existingLoan?['bank_account_number'] as String? ?? '');
+  late final _bankSortCodeCtrl =
+      TextEditingController(text: widget.existingLoan?['bank_sort_code'] as String? ?? '');
+  late final _bankSwiftCtrl =
+      TextEditingController(text: widget.existingLoan?['bank_swift_code'] as String? ?? '');
 
-  DateTime? _expectedEndDate;
-  String? _guarantorId;
-  bool _bankDetailsConfirmed = false;
+  late DateTime? _expectedEndDate = widget.existingLoan?['expected_end_date'] != null
+      ? DateTime.tryParse(widget.existingLoan!['expected_end_date'] as String)
+      : null;
+  late String? _guarantorId = widget.existingLoan?['guarantor_id'] as String?;
+  late bool _bankDetailsConfirmed = widget.existingLoan?['bank_details_confirmed'] as bool? ?? false;
 
   LoanSettings _settings = LoanSettings.fallback;
   List<GuarantorOption> _guarantors = [];
   bool _loadingContext = true;
   bool _saving = false;
   String? _error;
+
+  bool get _isEditingDraft => widget.existingLoan != null;
 
   @override
   void initState() {
@@ -117,23 +145,68 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       initialDate: now.add(const Duration(days: 30)),
       firstDate: now,
       lastDate: now.add(const Duration(days: 366 * 6)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  surface: Theme.of(context).colorScheme.surface,
+                ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
-      setState(() => _expectedEndDate = picked);
+      setState(() {
+        _expectedEndDate = picked;
+        _error = null;
+      });
     }
   }
 
-  Future<void> _handleSave({required bool submit}) async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_expectedEndDate == null) {
-      setState(() => _error = 'Please choose an expected end date.');
-      return;
+  void _nextStep() {
+    bool isValid = true;
+    
+    // Validate the current step's form before proceeding
+    if (_currentStep == 1) isValid = _step1Key.currentState?.validate() ?? true;
+    if (_currentStep == 2) {
+      isValid = _step2Key.currentState?.validate() ?? true;
+      if (_expectedEndDate == null) {
+        setState(() => _error = 'Please choose an expected end date.');
+        return;
+      }
     }
-    if (submit && !_bankDetailsConfirmed) {
-      setState(() => _error = 'Please confirm your bank details before submitting.');
-      return;
+    if (_currentStep == 3) isValid = _step3Key.currentState?.validate() ?? true;
+    if (_currentStep == 4) {
+      isValid = _step4Key.currentState?.validate() ?? true;
+      if (!_bankDetailsConfirmed) {
+        setState(() => _error = 'Please confirm your bank details to proceed.');
+        return;
+      }
     }
 
+    if (isValid) {
+      FocusScope.of(context).unfocus(); // Dismiss keyboard
+      setState(() {
+        _error = null;
+        if (_currentStep < _totalSteps - 1) {
+          _currentStep++;
+        }
+      });
+    }
+  }
+
+  void _prevStep() {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _error = null;
+      if (_currentStep > 0) {
+        _currentStep--;
+      }
+    });
+  }
+
+  Future<void> _handleSave({required bool submit}) async {
     setState(() {
       _saving = true;
       _error = null;
@@ -141,6 +214,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
 
     try {
       final loanId = await widget.repository.saveDraft(
+        existingLoanId: widget.existingLoan?['id'] as String?,
         applicantId: widget.profile.id,
         communityId: widget.profile.communityId!,
         loanType: _loanType,
@@ -155,7 +229,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         purpose: _purposeCtrl.text.trim(),
         securityDescription: _securityDescCtrl.text.trim().isEmpty ? null : _securityDescCtrl.text.trim(),
         securityEstimatedValue: double.tryParse(_securityValueCtrl.text.replaceAll(',', '')),
-        expectedEndDate: _expectedEndDate!,
+        expectedEndDate: _expectedEndDate ?? DateTime.now(), // Fallback for draft, caught by validation if submitting
         netPay: double.parse(_netPayCtrl.text.replaceAll(',', '')),
         guarantorId: _guarantorId,
         bankAccountHolderName: _bankHolderCtrl.text.trim(),
@@ -171,16 +245,27 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       }
 
       if (!mounted) return;
-      Navigator.of(context).pop(loanId);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(submit ? 'Application submitted' : 'Draft saved')),
+        SnackBar(
+          content: Text(submit ? 'Application submitted successfully' : 'Draft saved securely'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => LoanDetailScreen(
+            repository: widget.repository,
+            profile: widget.profile,
+            loanId: loanId,
+          ),
+        ),
       );
     } on PostgrestException catch (e) {
       setState(() => _error = e.message);
     } catch (e, st) {
-      // Temporary: surface the real error while we're debugging save issues.
       debugPrint('saveDraft/submit failed: $e\n$st');
-      setState(() => _error = 'Error: $e');
+      setState(() => _error = 'Please fill out all required numeric fields before saving.');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -203,166 +288,442 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loadingContext) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(strokeCap: StrokeCap.round),
+        ),
+      );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Loan Application')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _SectionHeader('Loan type'),
-            _card([
-              _EnumChips(
-                label: 'Category',
-                value: _loanCategory,
-                options: const {'normal': 'Normal', 'emergency': 'Emergency'},
-                onChanged: (v) => setState(() {
-                  _loanCategory = v;
-                  if (v == 'emergency') _loanType = 'new'; // topups are normal-only
-                }),
-              ),
-              const SizedBox(height: 8),
-              _EnumChips(
-                label: 'New or top-up',
-                value: _loanType,
-                options: {
-                  'new': 'New loan',
-                  if (_loanCategory == 'normal') 'topup': 'Top-up',
-                },
-                onChanged: (v) => setState(() => _loanType = v),
-              ),
-            ]),
-
-            _SectionHeader('Applicant details'),
-            _card([
-              _EnumChips(
-                label: 'Applicant category',
-                value: _applicantCategory,
-                options: const {'member': 'Member', 'non_member': 'Non-Member'},
-                onChanged: (v) => setState(() {
-                  _applicantCategory = v;
-                  if (v == 'member') {
-                    _employeeNumberCtrl.text = widget.profile.employeeNumber ?? '';
-                  }
-                }),
-              ),
-              const SizedBox(height: 12),
-              _field(_fullNameCtrl, "Applicant's name", validator: _required),
-              _field(_emailCtrl, 'Email', validator: _required),
-              _field(_phoneCtrl, 'Phone number', validator: _required),
-              _field(
-                _employeeNumberCtrl,
-                _applicantCategory == 'member' ? 'Employee Number (AEC/...)' : 'ID / Reference Number',
-                validator: _required,
-              ),
-            ]),
-
-            _SectionHeader('Loan details'),
-            _card([
-              _field(_amountCtrl, 'Amount applied for', keyboardType: TextInputType.number, validator: _requiredNumber),
-              _field(_amountInWordsCtrl, 'Amount in words', maxLines: 2),
-              _field(_purposeCtrl, 'Purpose of the loan', maxLines: 3, validator: _required),
-              const SizedBox(height: 4),
-              _DatePickerField(
-                label: 'Expected end date (determines loan period)',
-                value: _expectedEndDate,
-                onTap: _pickEndDate,
-              ),
-              if (_termMonths != null) ...[
-                const SizedBox(height: 6),
-                Text('Period: $_termMonths month(s)', style: Theme.of(context).textTheme.bodySmall),
-              ],
-              const SizedBox(height: 12),
-              _field(_netPayCtrl, 'Net pay (monthly)', keyboardType: TextInputType.number, validator: _requiredNumber),
-            ]),
-
-            _SectionHeader('Security & guarantor'),
-            _card([
-              _field(_securityDescCtrl, "Security's name (where necessary)"),
-              _field(_securityValueCtrl, 'Estimated value', keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _guarantorId,
-                decoration: const InputDecoration(labelText: 'Guarantor (optional)'),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('No guarantor needed')),
-                  ..._guarantors.map((g) => DropdownMenuItem(value: g.id, child: Text(g.fullName))),
-                ],
-                onChanged: (v) => setState(() => _guarantorId = v),
-              ),
-              if (_guarantorId != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Your guarantor will be notified and must confirm digitally before '
-                  'this application reaches the Loan Officer.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ]),
-
-            _SectionHeader('Bank details for disbursement (RTGS)'),
-            _card([
-              _field(_bankHolderCtrl, 'Full legal name (as on account)', validator: _required),
-              _field(_bankNameCtrl, 'Bank name', validator: _required),
-              _field(_bankAccountCtrl, 'Account number', validator: _required),
-              _field(_bankSortCodeCtrl, 'Sort code'),
-              _field(_bankSwiftCtrl, 'SWIFT / BIC code', validator: _required),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                value: _bankDetailsConfirmed,
-                onChanged: (v) => setState(() => _bankDetailsConfirmed = v ?? false),
-                title: const Text('I confirm these bank details are correct and I am the '
-                    'authorized signatory on this account.'),
-                controlAffinity: ListTileControlAffinity.leading,
-              ),
-            ]),
-
-            _SectionHeader('Preview'),
-            RepaymentPreviewCard(
-              preview: _preview,
-              amountRequested: double.tryParse(_amountCtrl.text.replaceAll(',', '')) ?? 0,
+      appBar: AppBar(
+        leading: _currentStep > 0
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: _prevStep,
+              )
+            : const BackButton(),
+        title: Text(
+          _isEditingDraft ? 'Edit Application' : 'New Application',
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+        ),
+        actions: [
+          TextButton(
+            onPressed: _saving ? null : () => _handleSave(submit: false),
+            child: const Text('Save Draft'),
+          ),
+          const SizedBox(width: 8),
+        ],
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          // Step Progress Indicator
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: Row(
+              children: List.generate(_totalSteps, (index) {
+                final isActive = index == _currentStep;
+                final isPassed = index < _currentStep;
+                return Expanded(
+                  flex: isActive ? 3 : 1,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: isActive || isPassed
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                );
+              }),
             ),
+          ),
+          
+          // Main Content Area
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                // Determine slide direction based on key comparison (hacky but works for simple ints)
+                final inAnimation = Tween<Offset>(
+                  begin: const Offset(0.05, 0),
+                  end: Offset.zero,
+                ).animate(animation);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: inAnimation,
+                    child: child,
+                  ),
+                );
+              },
+              child: SingleChildScrollView(
+                key: ValueKey<int>(_currentStep),
+                padding: const EdgeInsets.all(24),
+                child: _buildCurrentStepView(),
+              ),
+            ),
+          ),
 
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              Text(_error!, style: const TextStyle(color: Color(0xFFD9534F))),
+          // Bottom Navigation Bar
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: _buildBottomNav(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrentStepView() {
+    switch (_currentStep) {
+      case 0:
+        return _buildStep0Classification();
+      case 1:
+        return _buildStep1Personal();
+      case 2:
+        return _buildStep2LoanDetails();
+      case 3:
+        return _buildStep3Security();
+      case 4:
+        return _buildStep4Bank();
+      case 5:
+        return _buildStep5Review();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  // --- Step 0: Classification ---
+  Widget _buildStep0Classification() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _StepHeader(title: 'Loan Classification', subtitle: 'Let\'s start with the basics.', icon: Icons.category_rounded),
+        _card([
+          _EnumChips(
+            label: 'Loan Category',
+            value: _loanCategory,
+            options: const {'normal': 'Normal', 'emergency': 'Emergency'},
+            onChanged: (v) => setState(() {
+              _loanCategory = v;
+              if (v == 'emergency') _loanType = 'new';
+            }),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Divider(height: 1),
+          ),
+          _EnumChips(
+            label: 'New or Top-up',
+            value: _loanType,
+            options: {
+              'new': 'New loan',
+              if (_loanCategory == 'normal') 'topup': 'Top-up',
+            },
+            onChanged: (v) => setState(() => _loanType = v),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Divider(height: 1),
+          ),
+          _EnumChips(
+            label: 'Applicant Role',
+            value: _applicantCategory,
+            options: const {'member': 'Member', 'non_member': 'Non-Member'},
+            onChanged: (v) => setState(() {
+              _applicantCategory = v;
+              if (v == 'member') {
+                _employeeNumberCtrl.text = widget.profile.employeeNumber ?? '';
+              }
+            }),
+          ),
+        ]),
+      ],
+    );
+  }
+
+  // --- Step 1: Personal Details ---
+  Widget _buildStep1Personal() {
+    return Form(
+      key: _step1Key,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _StepHeader(title: 'Applicant Profile', subtitle: 'Confirm your personal details.', icon: Icons.person_rounded),
+          _card([
+            _field(_fullNameCtrl, "Full Legal Name", icon: Icons.badge_outlined, validator: _required),
+            _field(_emailCtrl, 'Email Address', icon: Icons.email_outlined, validator: _required),
+            _field(_phoneCtrl, 'Phone Number', icon: Icons.phone_outlined, validator: _required),
+            _field(
+              _employeeNumberCtrl,
+              _applicantCategory == 'member' ? 'Employee Number (AEC/...)' : 'ID / Reference Number',
+              icon: Icons.numbers_rounded,
+              validator: _required,
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  // --- Step 2: Loan Details ---
+  Widget _buildStep2LoanDetails() {
+    return Form(
+      key: _step2Key,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _StepHeader(title: 'Loan Particulars', subtitle: 'How much do you need?', icon: Icons.request_quote_rounded),
+          _card([
+            _field(_amountCtrl, 'Amount Applied For',
+                icon: Icons.attach_money_rounded, keyboardType: TextInputType.number, validator: _requiredNumber),
+            _field(_amountInWordsCtrl, 'Amount in Words',
+                icon: Icons.text_fields_rounded, maxLines: 2),
+            _field(_purposeCtrl, 'Purpose of the Loan',
+                icon: Icons.edit_note_rounded, maxLines: 3, validator: _required),
+            const SizedBox(height: 8),
+            _DatePickerField(
+              label: 'Expected End Date',
+              value: _expectedEndDate,
+              onTap: _pickEndDate,
+            ),
+            if (_termMonths != null) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 12),
+                child: Text(
+                  'Calculated Period: $_termMonths month(s)',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
             ],
-
             const SizedBox(height: 24),
+            _field(_netPayCtrl, 'Net Pay (Monthly)',
+                icon: Icons.account_balance_wallet_outlined, keyboardType: TextInputType.number, validator: _requiredNumber),
+          ]),
+          if (_error != null) _buildErrorBanner(),
+        ],
+      ),
+    );
+  }
+
+  // --- Step 3: Security & Guarantor ---
+  Widget _buildStep3Security() {
+    return Form(
+      key: _step3Key,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _StepHeader(title: 'Security & Guarantor', subtitle: 'Provide backing for your application.', icon: Icons.shield_rounded),
+          _card([
+            _field(_securityDescCtrl, "Security Description (Optional)", icon: Icons.inventory_2_outlined),
+            _field(_securityValueCtrl, 'Estimated Value',
+                icon: Icons.price_change_outlined, keyboardType: TextInputType.number),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: _guarantorId,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              decoration: InputDecoration(
+                labelText: 'Select Guarantor',
+                prefixIcon: const Icon(Icons.group_add_outlined),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                filled: true,
+              ),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('No guarantor needed')),
+                ..._guarantors.map((g) => DropdownMenuItem(value: g.id, child: Text(g.fullName))),
+              ],
+              onChanged: (v) => setState(() => _guarantorId = v),
+            ),
+            if (_guarantorId != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline_rounded,
+                        size: 20, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Your guarantor will be notified and must confirm digitally before '
+                        'this application proceeds to the Loan Officer.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ]),
+        ],
+      ),
+    );
+  }
+
+  // --- Step 4: Bank Details ---
+  Widget _buildStep4Bank() {
+    return Form(
+      key: _step4Key,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _StepHeader(title: 'Disbursement Details', subtitle: 'Where should we send the funds?', icon: Icons.account_balance_rounded),
+          _card([
+            _field(_bankHolderCtrl, 'Account Holder Name', icon: Icons.person_outline, validator: _required),
+            _field(_bankNameCtrl, 'Bank Name', icon: Icons.account_balance_outlined, validator: _required),
+            _field(_bankAccountCtrl, 'Account Number', icon: Icons.pin_outlined, validator: _required),
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _saving ? null : () => _handleSave(submit: false),
-                    child: const Text('Save as draft'),
-                  ),
-                ),
+                Expanded(child: _field(_bankSortCodeCtrl, 'Sort Code', icon: Icons.tag)),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _saving ? null : () => _handleSave(submit: true),
-                    child: _saving
-                        ? const SizedBox(
-                            height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Submit'),
-                  ),
-                ),
+                Expanded(child: _field(_bankSwiftCtrl, 'SWIFT / BIC', icon: Icons.public, validator: _required)),
               ],
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: CheckboxListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                value: _bankDetailsConfirmed,
+                activeColor: Theme.of(context).colorScheme.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                onChanged: (v) => setState(() {
+                  _bankDetailsConfirmed = v ?? false;
+                  if (_bankDetailsConfirmed) _error = null;
+                }),
+                title: Text(
+                  'I confirm these bank details are accurate and I am the authorized signatory.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                ),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+            ),
+          ]),
+          if (_error != null) _buildErrorBanner(),
+        ],
+      ),
+    );
+  }
+
+  // --- Step 5: Review & Submit ---
+  Widget _buildStep5Review() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _StepHeader(title: 'Review Application', subtitle: 'Ensure everything looks correct before submitting.', icon: Icons.insights_rounded),
+        RepaymentPreviewCard(
+          preview: _preview,
+          amountRequested: double.tryParse(_amountCtrl.text.replaceAll(',', '')) ?? 0,
+        ),
+        if (_error != null) _buildErrorBanner(),
+      ],
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return Row(
+      children: [
+        if (_currentStep > 0) ...[
+          OutlinedButton(
+            onPressed: _saving ? null : _prevStep,
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+            ),
+            child: const Icon(Icons.arrow_back_rounded, size: 20),
+          ),
+          const SizedBox(width: 16),
+        ],
+        Expanded(
+          child: FilledButton(
+            onPressed: _saving 
+                ? null 
+                : (_currentStep == _totalSteps - 1 ? () => _handleSave(submit: true) : _nextStep),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              elevation: 0,
+            ),
+            child: _saving
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                  )
+                : Text(
+                    _currentStep == _totalSteps - 1 ? 'Submit Application' : 'Next Step',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFD9534F).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFD9534F).withOpacity(0.5)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline_rounded, color: Color(0xFFD9534F)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(_error!, style: const TextStyle(color: Color(0xFFD9534F), fontWeight: FontWeight.w500)),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _card(List<Widget> children) => Card(
-        margin: const EdgeInsets.only(bottom: 8),
+  Widget _card(List<Widget> children) => Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardTheme.color,
+          borderRadius: Theme.of(context).cardTheme.shape is RoundedRectangleBorder
+              ? (Theme.of(context).cardTheme.shape as RoundedRectangleBorder).borderRadius
+              : BorderRadius.circular(22),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
         ),
       );
@@ -370,44 +731,72 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   Widget _field(
     TextEditingController ctrl,
     String label, {
+    IconData? icon,
     TextInputType? keyboardType,
     int maxLines = 1,
     String? Function(String?)? validator,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 20),
       child: TextFormField(
         controller: ctrl,
         keyboardType: keyboardType,
         maxLines: maxLines,
         validator: validator,
-        decoration: InputDecoration(labelText: label),
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: icon != null ? Icon(icon, size: 22, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)) : null,
+          alignLabelWithHint: maxLines > 1,
+        ),
       ),
     );
   }
 
-  String? _required(String? v) => (v == null || v.trim().isEmpty) ? 'Required' : null;
+  String? _required(String? v) => (v == null || v.trim().isEmpty) ? 'This field is required' : null;
   String? _requiredNumber(String? v) {
-    if (v == null || v.trim().isEmpty) return 'Required';
-    if (double.tryParse(v.replaceAll(',', '')) == null) return 'Enter a valid number';
+    if (v == null || v.trim().isEmpty) return 'This field is required';
+    if (double.tryParse(v.replaceAll(',', '')) == null) return 'Please enter a valid number';
     return null;
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.title);
+class _StepHeader extends StatelessWidget {
+  const _StepHeader({required this.title, required this.subtitle, required this.icon});
+  
   final String title;
+  final String subtitle;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 8),
-      child: Text(
-        title,
-        style: Theme.of(context)
-            .textTheme
-            .titleMedium
-            ?.copyWith(fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.primary),
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ),
+          ),
+        ],
       ),
     );
   }
@@ -431,14 +820,36 @@ class _EnumChips extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 8),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const SizedBox(height: 16),
         Wrap(
-          spacing: 8,
+          spacing: 12,
+          runSpacing: 12,
           children: options.entries.map((e) {
+            final isSelected = value == e.key;
             return ChoiceChip(
               label: Text(e.value),
-              selected: value == e.key,
+              selected: isSelected,
+              showCheckmark: false,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              labelStyle: TextStyle(
+                color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              ),
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              selectedColor: Theme.of(context).colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                ),
+              ),
               onSelected: (_) => onChanged(e.key),
             );
           }).toList(),
@@ -456,19 +867,25 @@ class _DatePickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = value == null
-        ? 'Select a date'
-        : '${value!.day}/${value!.month}/${value!.year}';
-    return InkWell(
-      onTap: onTap,
-      child: InputDecorator(
-        decoration: InputDecoration(labelText: label),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(text),
-            const Icon(Icons.calendar_today_rounded, size: 18),
-          ],
+    final text = value == null ? 'Select a date' : '${value!.day}/${value!.month}/${value!.year}';
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: label,
+            prefixIcon: Icon(Icons.calendar_month_outlined, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+          ),
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: value == null ? FontWeight.w400 : FontWeight.w500,
+              color: value == null ? Theme.of(context).colorScheme.onSurface.withOpacity(0.5) : Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
         ),
       ),
     );

@@ -12,12 +12,19 @@ import '../data/auth_service.dart';
 import '../../home/presentation/home_placeholder_screen.dart';
 import '../../loans/data/loan_repository.dart';
 import '../../loans/presentation/loans_dashboard_screen.dart';
+import '../../notifications/data/notifications_repository.dart';
 import 'login_screen.dart';
 
 class AuthGate extends StatefulWidget {
-  const AuthGate({super.key, required this.authService, required this.loanRepository});
+  const AuthGate({
+    super.key,
+    required this.authService,
+    required this.loanRepository,
+    required this.notificationsRepository,
+  });
   final AuthService authService;
   final LoanRepository loanRepository;
+  final NotificationsRepository notificationsRepository;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -78,6 +85,7 @@ class _AuthGateState extends State<AuthGate> {
               repository: widget.loanRepository,
               profile: profile,
               authService: widget.authService,
+              notificationsRepository: widget.notificationsRepository,
             );
           },
         );

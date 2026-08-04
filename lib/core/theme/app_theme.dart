@@ -55,7 +55,10 @@ class AppTheme {
   }
 
   static ThemeData _base(ColorScheme scheme, Color bg, Color surface) {
-    final textTheme = GoogleFonts.interTextTheme();
+      final textTheme = GoogleFonts.interTextTheme().apply(
+        bodyColor: scheme.onSurface,
+        displayColor: scheme.onSurface,
+      );
 
     return ThemeData(
       useMaterial3: true,
@@ -69,17 +72,6 @@ class AppTheme {
         elevation: 0,
         centerTitle: false,
       ),
-      // appBarTheme: AppBarTheme(
-      //   backgroundColor: bg,
-      //   foregroundColor: scheme.onSurface,
-      //   elevation: 0,
-      //   centerTitle: false,
-      //   titleTextStyle: GoogleFonts.inter(
-      //     fontSize: 20,
-      //     fontWeight: FontWeight.w600,
-      //     color: scheme.onSurface,
-      //   ),
-      // ),
       cardTheme: CardThemeData(
         color: AppColors.darkSurface,
         elevation: 0,

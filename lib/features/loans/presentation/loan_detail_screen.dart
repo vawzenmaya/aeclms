@@ -1,11 +1,13 @@
 // lib/features/loans/presentation/loan_detail_screen.dart
 
-import 'package:aeclms/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../auth/data/auth_service.dart';
+import '../../documents/data/documents_repository.dart';
+import '../../documents/presentation/documents_section.dart';
 import '../data/loan_repository.dart';
+import 'application_form_screen.dart';
 import 'widgets/loan_status_chip.dart';
 
 class LoanDetailScreen extends StatefulWidget {
@@ -25,6 +27,7 @@ class LoanDetailScreen extends StatefulWidget {
 }
 
 class _LoanDetailScreenState extends State<LoanDetailScreen> {
+  final DocumentsRepository _documentsRepo = DocumentsRepository(Supabase.instance.client);
   Map<String, dynamic>? _loan;
   Map<String, dynamic>? _currentStage;
   List<Map<String, dynamic>> _allStages = [];
@@ -200,6 +203,15 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           ]),
 
           const SizedBox(height: 16),
+          DocumentsSection(
+            repository: _documentsRepo,
+            loanId: loan['id'] as String,
+            uploadedBy: widget.profile.id,
+            canUpload: loan['applicant_id'] == widget.profile.id &&
+                (loan['status'] == 'draft' || loan['status'] == 'returned_to_applicant'),
+          ),
+
+          const SizedBox(height: 16),
           Text('Stage tracker', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           ..._allStages.map((s) {
@@ -232,7 +244,70 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     );
   }
 
+  bool get _isEditableDraft {
+    final loan = _loan!;
+    return loan['applicant_id'] == widget.profile.id &&
+        (loan['status'] == 'draft' || loan['status'] == 'returned_to_applicant');
+  }
+
+  Future<void> _editApplication() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ApplicationFormScreen(
+          repository: widget.repository,
+          profile: widget.profile,
+          currentUserEmail: Supabase.instance.client.auth.currentUser?.email,
+          existingLoan: _loan,
+        ),
+      ),
+    );
+    _load();
+  }
+
+  Future<void> _submitDraft() async {
+    setState(() => _acting = true);
+    try {
+      await widget.repository.submit(widget.loanId, hasGuarantor: _loan!['guarantor_id'] != null);
+      await _load();
+    } on PostgrestException catch (e) {
+      setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _acting = false);
+    }
+  }
+
   Widget _buildActionArea(BuildContext context) {
+    if (_isEditableDraft) {
+      final status = _loan!['status'] as String;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            status == 'returned_to_applicant'
+                ? 'This was sent back to you. Make any changes needed, then resubmit.'
+                : 'This application is still a draft. Add documents, then submit when ready.',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _acting ? null : _editApplication,
+                child: const Text('Edit application'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                onPressed: _acting ? null : _submitDraft,
+                child: const Text('Submit'),
+              ),
+            ),
+          ]),
+        ],
+      );
+    }
+
     if (_isGuarantorPending) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -300,27 +375,16 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
   Widget _row(String label, String value, {bool warn = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFFB0B6B2),
-              fontSize: 15,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: warn
-                  ? AppColors.danger
-                  : Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
-          ),
+          Text(label),
+          Text(value,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: warn ? const Color(0xFFD9534F) : null,
+              )),
         ],
       ),
     );

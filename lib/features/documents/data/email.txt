@@ -1,0 +1,68 @@
+MIME-Version: 1.0
+Date: Wed, 6 May 2026 12:11:15 +0300
+Message-ID: <CAMxAHXUEk18H8phh1W_OdTMQd4RCVyVVFABXjSnDKcs7bY8m8A@mail.gmail.com>
+Subject: Request to Submit Assignment II: Insertion Sort via Email
+From: KASULE LAURENMAYA <kasulelaurenmaya@gmail.com>
+To: john.kizito@mak.ac.ug
+Content-Type: multipart/mixed; boundary="000000000000efef020651228b50"
+
+--000000000000efef020651228b50
+Content-Type: multipart/alternative; boundary="000000000000efef000651228b4e"
+
+--000000000000efef000651228b4e
+Content-Type: text/plain; charset="UTF-8"
+
+Dear Lecturer,
+
+I hope you are doing well.
+
+I am writing to respectfully inform you that I was unable to hand in my
+Algorithms assignment through the class representative as required. This
+was because I was unable to get in touch with the class representative,
+since I did not know them personally and I also did not have their contact
+information.
+
+The assignment is *Assignment II: Insertion Sort*, based on *Chapter 8 and
+9 of **Algorithms in C** by R. Sedgewick*. I have completed the work and
+would like to kindly request permission to submit it directly to you
+through this email.
+
+I sincerely apologize for any inconvenience caused and I would be very
+grateful if you allowed me to submit the assignment by email.
+
+Thank you for your understanding.
+
+Yours faithfully,
+*Kinataama Lauren*
+*23/U/09869/EVE*
+
+--000000000000efef000651228b4e
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr"><div dir=3D"ltr"><p>Dear Lecturer,</p><p>I hope you are do=
+ing well.</p><p>I am writing to respectfully inform you that I was unable t=
+o hand in my Algorithms assignment through the class representative as requ=
+ired. This was because I was unable to get in touch with the class represen=
+tative, since I did not know them personally and I also did not have their =
+contact information.</p><p>The assignment is <strong>Assignment II: Inserti=
+on Sort</strong>, based on <strong>Chapter 8 and 9 of </strong><em><strong>=
+Algorithms in C</strong></em><strong> by R. Sedgewick</strong>. I have comp=
+leted the work and would like to kindly request permission to submit it dir=
+ectly to you through this email.</p><p>I sincerely apologize for any inconv=
+enience caused and I would be very grateful if you allowed me to submit the=
+ assignment by email.</p><p>Thank you for your understanding.</p><p>Yours f=
+aithfully,<br><strong><span>Kinataama Lauren</span></strong><br><strong><sp=
+an>23/U/09869/EVE</span></strong></p></div>
+</div>
+
+--000000000000efef000651228b4e--
+--000000000000efef020651228b50
+Content-Type: application/pdf; name="assignment1.cpp.pdf"
+Content-Disposition: attachment; filename="assignment1.cpp.pdf"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_motu7zc10
+Content-ID: <f_motu7zc10>
+
+
+--000000000000efef020651228b50--

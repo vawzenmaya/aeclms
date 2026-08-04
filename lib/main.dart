@@ -11,6 +11,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/data/auth_service.dart';
 import 'features/auth/presentation/auth_gate.dart';
 import 'features/loans/data/loan_repository.dart';
+import 'features/notifications/data/notifications_repository.dart';
 
 const supabaseUrl = 'https://wtoalqqzuareemmipwla.supabase.co';
 const supabaseAnonKey = 'sb_publishable_LA8rj6lPsxII6dlvzDnaZA_KtsBshYx';
@@ -31,6 +32,7 @@ Future<void> main() async {
 final supabase = Supabase.instance.client;
 final authService = AuthService(supabase);
 final loanRepository = LoanRepository(supabase);
+final notificationsRepository = NotificationsRepository(supabase);
 
 class LoanManagementApp extends StatelessWidget {
   const LoanManagementApp({super.key});
@@ -43,7 +45,11 @@ class LoanManagementApp extends StatelessWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
-      home: AuthGate(authService: authService, loanRepository: loanRepository),
+      home: AuthGate(
+        authService: authService,
+        loanRepository: loanRepository,
+        notificationsRepository: notificationsRepository,
+      ),
     );
   }
 }
