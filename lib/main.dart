@@ -4,12 +4,12 @@
 // (Project Settings -> API in the Supabase dashboard).
 // Once auth + routing screens exist, swap `home:` for go_router.
 
+import 'package:aeclms/features/auth/presentation/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/auth/data/auth_service.dart';
-import 'features/auth/presentation/auth_gate.dart';
 import 'features/loans/data/loan_repository.dart';
 import 'features/notifications/data/notifications_repository.dart';
 
@@ -45,7 +45,7 @@ class LoanManagementApp extends StatelessWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
-      home: AuthGate(
+      home: SplashScreen(
         authService: authService,
         loanRepository: loanRepository,
         notificationsRepository: notificationsRepository,

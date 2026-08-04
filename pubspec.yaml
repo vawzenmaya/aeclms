@@ -49,7 +49,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # assets:
+  assets:
+    - assets/animations/loading_animation/
+    - assets/animations/splash_animation/
   # fonts:
   #   - family:
   #     fonts:

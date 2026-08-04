@@ -1,5 +1,6 @@
 // lib/features/loans/presentation/application_form_screen.dart
 
+import 'package:aeclms/core/widgets/custom_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -288,9 +289,9 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loadingContext) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
-          child: CircularProgressIndicator(strokeCap: StrokeCap.round),
+          child: CustomLoader(size: 56, color: Theme.of(context).colorScheme.primary),
         ),
       );
     }
@@ -552,7 +553,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -665,11 +666,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
               elevation: 0,
             ),
             child: _saving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                  )
+                ? const CustomLoader(size: 24, color: Colors.white)
                 : Text(
                     _currentStep == _totalSteps - 1 ? 'Submit Application' : 'Next Step',
                     style: const TextStyle(fontSize: 16),
@@ -686,9 +683,9 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFD9534F).withOpacity(0.1),
+          color: const Color(0xFFD9534F).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFD9534F).withOpacity(0.5)),
+          border: Border.all(color: const Color(0xFFD9534F).withValues(alpha: 0.5)),
         ),
         child: Row(
           children: [
@@ -711,12 +708,12 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
               ? (Theme.of(context).cardTheme.shape as RoundedRectangleBorder).borderRadius
               : BorderRadius.circular(22),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 24,
               offset: const Offset(0, 8),
             ),
@@ -746,7 +743,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: icon != null ? Icon(icon, size: 22, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)) : null,
+          prefixIcon: icon != null ? Icon(icon, size: 22, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)) : null,
           alignLabelWithHint: maxLines > 1,
         ),
       ),
@@ -793,7 +790,7 @@ class _StepHeader extends StatelessWidget {
           Text(
             subtitle,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
           ),
         ],
@@ -823,7 +820,7 @@ class _EnumChips extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w600,
               ),
         ),
@@ -842,7 +839,7 @@ class _EnumChips extends StatelessWidget {
                 color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               ),
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
               selectedColor: Theme.of(context).colorScheme.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -876,14 +873,14 @@ class _DatePickerField extends StatelessWidget {
         child: InputDecorator(
           decoration: InputDecoration(
             labelText: label,
-            prefixIcon: Icon(Icons.calendar_month_outlined, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+            prefixIcon: Icon(Icons.calendar_month_outlined, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
           ),
           child: Text(
             text,
             style: TextStyle(
               fontSize: 15,
               fontWeight: value == null ? FontWeight.w400 : FontWeight.w500,
-              color: value == null ? Theme.of(context).colorScheme.onSurface.withOpacity(0.5) : Theme.of(context).colorScheme.onSurface,
+              color: value == null ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5) : Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
