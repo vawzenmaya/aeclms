@@ -1,0 +1,60 @@
+name: aeclms
+description: Community loan management & tracking system
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.10.7 <4.0.0'
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Backend
+  supabase_flutter: ^2.16.0
+
+  # State management
+  flutter_riverpod: ^3.4.2
+
+  # Routing
+  go_router: ^17.3.0
+
+  # UI / theme
+  google_fonts: ^8.2.0
+  flutter_svg: ^2.3.0
+  cached_network_image: ^3.4.1
+
+  # Forms & validation
+  reactive_forms: ^18.2.2
+
+  # Files / documents (for uploading loan forms, IDs, etc.)
+  file_picker: ^11.0.2
+  image_picker: ^1.2.3
+
+  # Notifications (local + push later via Edge Function -> FCM)
+  flutter_local_notifications: ^22.2.0
+
+  # Utilities
+  intl: ^0.20.2
+  equatable: ^2.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: 2.15.1
+
+flutter:
+  uses-material-design: true
+
+  # assets:
+  # fonts:
+  #   - family:
+  #     fonts:
+  #       - asset:
+  #       - asset:
+  #         style:
+
+dependency_overrides:
+  meta: 1.18.0
