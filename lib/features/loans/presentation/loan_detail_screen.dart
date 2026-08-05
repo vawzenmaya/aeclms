@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../auth/data/auth_service.dart';
 import '../../documents/data/documents_repository.dart';
+import '../../documents/presentation/document_upload_screen.dart';
 import '../../documents/presentation/documents_section.dart';
 import '../data/loan_repository.dart';
 import 'application_form_screen.dart';
@@ -182,8 +183,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         (_loan!['status'] == 'draft' || _loan!['status'] == 'returned_to_applicant');
   }
 
-  Future<void> _editApplication() async {
-    await Navigator.of(context).push(
+  /// Edits this draft. Uses pushReplacement (not push) so the whole chain --
+  /// edit form -> documents -> back to a fresh detail screen -- replaces this
+  /// screen cleanly instead of leaving a stale copy underneath in the stack.
+  void _editApplication() {
+    Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => ApplicationFormScreen(
           repository: widget.repository,
@@ -193,19 +197,22 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         ),
       ),
     );
-    _load();
   }
 
-  Future<void> _submitDraft() async {
-    setState(() => _acting = true);
-    try {
-      await widget.repository.submit(widget.loanId, hasGuarantor: _loan!['guarantor_id'] != null);
-      await _load();
-    } on PostgrestException catch (e) {
-      setState(() => _error = e.message);
-    } finally {
-      if (mounted) setState(() => _acting = false);
-    }
+  /// Submission always goes through the dedicated Documents screen -- a loan
+  /// can't be submitted without at least one uploaded document, so that
+  /// screen is where the actual submit action (and its validation) lives.
+  void _goToDocumentUpload() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => DocumentUploadScreen(
+          loanRepository: widget.repository,
+          profile: widget.profile,
+          loanId: widget.loanId,
+          hasGuarantor: _loan!['guarantor_id'] != null,
+        ),
+      ),
+    );
   }
 
   @override
@@ -228,10 +235,10 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
   Widget _buildLoaded(BuildContext context) {
     final loan = _loan!;
     final scheme = Theme.of(context).colorScheme;
-    
+
     final amountRaw = loan['amount_requested'] as num?;
-    final amountString = amountRaw != null 
-        ? amountRaw.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},') 
+    final amountString = amountRaw != null
+        ? amountRaw.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')
         : '-';
 
     return Scaffold(
@@ -248,7 +255,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               children: [
-                // 1. Hero Section
                 _StaggeredFadeIn(
                   index: 0,
                   child: Column(
@@ -311,10 +317,9 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 32),
 
-                // 2. Metrics Grid
                 _StaggeredFadeIn(
                   index: 1,
                   child: _buildMetricsGrid(context, loan),
@@ -322,7 +327,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
                 const SizedBox(height: 24),
 
-                // 3. Details Card
                 _StaggeredFadeIn(
                   index: 2,
                   child: _buildDetailsCard(context, loan),
@@ -330,7 +334,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
                 const SizedBox(height: 32),
 
-                // 4. Documents Section
                 _StaggeredFadeIn(
                   index: 3,
                   child: Column(
@@ -356,7 +359,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
                 const SizedBox(height: 32),
 
-                // 5. Stage Tracker Timeline
                 _StaggeredFadeIn(
                   index: 4,
                   child: Column(
@@ -367,13 +369,12 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                     ],
                   ),
                 ),
-                
-                const SizedBox(height: 48), // Padding for scrolling past FAB/Bottom nav
+
+                const SizedBox(height: 48),
               ],
             ),
           ),
-          
-          // Action Area docked at bottom
+
           if (_isEditableDraft || _isGuarantorPending || _isMyApprovalTurn || _error != null)
             _buildActionDock(context),
         ],
@@ -383,8 +384,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
   Widget _buildMetricsGrid(BuildContext context, Map<String, dynamic> loan) {
     final isDtiExceeded = loan['dti_exceeded'] == true;
-    final dtiValue = loan['debt_to_income_ratio'] != null 
-        ? '${((loan['debt_to_income_ratio'] as num) * 100).toStringAsFixed(1)}%' 
+    final dtiValue = loan['debt_to_income_ratio'] != null
+        ? '${((loan['debt_to_income_ratio'] as num) * 100).toStringAsFixed(1)}%'
         : 'N/A';
 
     return Row(
@@ -454,7 +455,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
   Widget _buildTimeline(BuildContext context, Map<String, dynamic> loan) {
     final scheme = Theme.of(context).colorScheme;
-    
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -476,7 +477,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Timeline Line & Dot
                 Column(
                   children: [
                     Container(
@@ -484,8 +484,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                       height: 24,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isCurrent 
-                            ? scheme.primary.withValues(alpha: 0.2) 
+                        color: isCurrent
+                            ? scheme.primary.withValues(alpha: 0.2)
                             : (isPast ? scheme.primary : scheme.surface),
                         border: Border.all(
                           color: isCurrent || isPast ? scheme.primary : scheme.outline,
@@ -493,7 +493,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                         ),
                       ),
                       child: Center(
-                        child: isCurrent 
+                        child: isCurrent
                             ? Container(width: 10, height: 10, decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle))
                             : (isPast ? Icon(Icons.check, size: 14, color: scheme.onPrimary) : null),
                       ),
@@ -508,7 +508,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                   ],
                 ),
                 const SizedBox(width: 16),
-                // Timeline Content
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 24),
@@ -545,7 +544,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
   Widget _buildActionDock(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    
+
     return Container(
       padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
       decoration: BoxDecoration(
@@ -580,7 +579,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
               ),
             ),
           ],
-          
+
           if (_isEditableDraft) ...[
             Text(
               _loan!['status'] == 'returned_to_applicant'
@@ -602,14 +601,14 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: _acting ? null : _submitDraft,
-                  icon: _acting ? const CustomLoader(size: 20, color: Colors.white) : const Icon(Icons.send_rounded, size: 20),
-                  label: _acting ? const SizedBox.shrink() : const Text('Submit'),
+                  onPressed: _acting ? null : _goToDocumentUpload,
+                  icon: const Icon(Icons.upload_file_rounded, size: 20),
+                  label: const Text('Documents & Submit'),
                   style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
                 ),
               ),
             ]),
-          ] 
+          ]
           else if (_isGuarantorPending) ...[
             Row(
               children: [
@@ -735,8 +734,8 @@ class _MetricTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final bgColor = warn 
-        ? const Color(0xFFD9534F).withValues(alpha: 0.1) 
+    final bgColor = warn
+        ? const Color(0xFFD9534F).withValues(alpha: 0.1)
         : (isHighlight ? scheme.primary.withValues(alpha: 0.1) : scheme.surfaceContainerHighest.withValues(alpha: 0.3));
     final iconColor = warn ? const Color(0xFFD9534F) : scheme.primary;
 

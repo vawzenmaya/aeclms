@@ -6,9 +6,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/utils/amount_to_words.dart';
 import '../../auth/data/auth_service.dart';
+import '../../documents/presentation/document_upload_screen.dart';
 import '../data/loan_repository.dart';
 import '../domain/loan_calculations.dart';
-import 'loan_detail_screen.dart';
 import 'widgets/repayment_preview_card.dart';
 
 class ApplicationFormScreen extends StatefulWidget {
@@ -167,7 +167,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
 
   void _nextStep() {
     bool isValid = true;
-    
+
     // Validate the current step's form before proceeding
     if (_currentStep == 1) isValid = _step1Key.currentState?.validate() ?? true;
     if (_currentStep == 2) {
@@ -207,7 +207,10 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     });
   }
 
-  Future<void> _handleSave({required bool submit}) async {
+  /// Saves the loan as a draft (never submits directly — submission now
+  /// always happens from the dedicated Documents screen, since a loan can't
+  /// be submitted without at least one uploaded document).
+  Future<void> _handleSave() async {
     setState(() {
       _saving = true;
       _error = null;
@@ -241,31 +244,29 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         bankDetailsConfirmed: _bankDetailsConfirmed,
       );
 
-      if (submit) {
-        await widget.repository.submit(loanId, hasGuarantor: _guarantorId != null);
-      }
-
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(submit ? 'Application submitted successfully' : 'Draft saved securely'),
+        const SnackBar(
+          content: Text('Application saved. Now add your documents.'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
         ),
       );
+      // Always go to the Documents screen next — submission happens from there.
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => LoanDetailScreen(
-            repository: widget.repository,
+          builder: (_) => DocumentUploadScreen(
+            loanRepository: widget.repository,
             profile: widget.profile,
             loanId: loanId,
+            hasGuarantor: _guarantorId != null,
           ),
         ),
       );
     } on PostgrestException catch (e) {
       setState(() => _error = e.message);
     } catch (e, st) {
-      debugPrint('saveDraft/submit failed: $e\n$st');
+      debugPrint('saveDraft failed: $e\n$st');
       setState(() => _error = 'Please fill out all required numeric fields before saving.');
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -310,7 +311,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: _saving ? null : () => _handleSave(submit: false),
+            onPressed: _saving ? null : _handleSave,
             child: const Text('Save Draft'),
           ),
           const SizedBox(width: 8),
@@ -344,7 +345,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
               }),
             ),
           ),
-          
+
           // Main Content Area
           Expanded(
             child: AnimatedSwitcher(
@@ -627,12 +628,12 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     );
   }
 
-  // --- Step 5: Review & Submit ---
+  // --- Step 5: Review & Save ---
   Widget _buildStep5Review() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _StepHeader(title: 'Review Application', subtitle: 'Ensure everything looks correct before submitting.', icon: Icons.insights_rounded),
+        const _StepHeader(title: 'Review Application', subtitle: 'Ensure everything looks correct before continuing.', icon: Icons.insights_rounded),
         RepaymentPreviewCard(
           preview: _preview,
           amountRequested: double.tryParse(_amountCtrl.text.replaceAll(',', '')) ?? 0,
@@ -658,9 +659,9 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         ],
         Expanded(
           child: FilledButton(
-            onPressed: _saving 
-                ? null 
-                : (_currentStep == _totalSteps - 1 ? () => _handleSave(submit: true) : _nextStep),
+            onPressed: _saving
+                ? null
+                : (_currentStep == _totalSteps - 1 ? _handleSave : _nextStep),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
               elevation: 0,
@@ -668,7 +669,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
             child: _saving
                 ? const CustomLoader(size: 24, color: Colors.white)
                 : Text(
-                    _currentStep == _totalSteps - 1 ? 'Submit Application' : 'Next Step',
+                    _currentStep == _totalSteps - 1 ? 'Continue to Documents' : 'Next Step',
                     style: const TextStyle(fontSize: 16),
                   ),
           ),
@@ -760,7 +761,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
 
 class _StepHeader extends StatelessWidget {
   const _StepHeader({required this.title, required this.subtitle, required this.icon});
-  
+
   final String title;
   final String subtitle;
   final IconData icon;
