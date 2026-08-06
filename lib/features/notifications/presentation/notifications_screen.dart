@@ -121,7 +121,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 icon: const Icon(Icons.done_all_rounded, size: 20),
                 label: const Text('Mark all read', style: TextStyle(fontWeight: FontWeight.w600)),
                 style: TextButton.styleFrom(
-                  foregroundColor: hasUnread ? scheme.primary : scheme.onSurface.withOpacity(0.3),
+                  foregroundColor: hasUnread ? scheme.primary : scheme.onSurface.withValues(alpha: 0.3),
                 ),
               ),
             ),
@@ -139,9 +139,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
                         decoration: BoxDecoration(
-                          color: scheme.surfaceContainerHighest.withOpacity(0.2),
+                          color: scheme.surfaceContainerHighest.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: scheme.outlineVariant.withOpacity(0.5)),
+                          border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
                         ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -149,7 +149,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             Container(
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(color: scheme.surface, shape: BoxShape.circle),
-                              child: Icon(Icons.notifications_off_rounded, size: 48, color: scheme.onSurface.withOpacity(0.2)),
+                              child: Icon(Icons.notifications_off_rounded, size: 48, color: scheme.onSurface.withValues(alpha: 0.2)),
                             ),
                             const SizedBox(height: 20),
                             const Text('You\'re all caught up!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
@@ -157,7 +157,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             Text(
                               'You have no new notifications right now.',
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 14, color: scheme.onSurface.withOpacity(0.6), height: 1.5),
+                              style: TextStyle(fontSize: 14, color: scheme.onSurface.withValues(alpha: 0.6), height: 1.5),
                             ),
                           ],
                         ),
@@ -213,7 +213,7 @@ class _NotificationCard extends StatelessWidget {
     } else if (t.contains('new') || t.contains('submit')) {
       return (Icons.post_add_rounded, const Color(0xFF4A90E2));
     }
-    return (Icons.notifications_rounded, scheme.onSurface.withOpacity(0.6));
+    return (Icons.notifications_rounded, scheme.onSurface.withValues(alpha: 0.6));
   }
 
   @override
@@ -223,19 +223,19 @@ class _NotificationCard extends StatelessWidget {
     
     final design = _getIconDesign(notification.title, scheme);
     final iconData = design.$1;
-    final iconColor = isRead ? scheme.onSurface.withOpacity(0.4) : design.$2;
+    final iconColor = isRead ? scheme.onSurface.withValues(alpha: 0.4) : design.$2;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isRead ? Theme.of(context).cardTheme.color : scheme.primary.withOpacity(0.05),
+        color: isRead ? Theme.of(context).cardTheme.color : scheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isRead ? scheme.outlineVariant.withOpacity(0.4) : scheme.primary.withOpacity(0.3),
+          color: isRead ? scheme.outlineVariant.withValues(alpha: 0.4) : scheme.primary.withValues(alpha: 0.3),
           width: isRead ? 1 : 1.5,
         ),
         boxShadow: isRead ? [] : [
-          BoxShadow(color: scheme.primary.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: scheme.primary.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Material(
@@ -252,7 +252,7 @@ class _NotificationCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isRead ? scheme.surfaceContainerHighest.withOpacity(0.3) : iconColor.withOpacity(0.15),
+                    color: isRead ? scheme.surfaceContainerHighest.withValues(alpha: 0.3) : iconColor.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(iconData, size: 22, color: iconColor),
@@ -273,7 +273,7 @@ class _NotificationCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: isRead ? FontWeight.w600 : FontWeight.w800,
-                                color: isRead ? scheme.onSurface.withOpacity(0.8) : scheme.onSurface,
+                                color: isRead ? scheme.onSurface.withValues(alpha: 0.8) : scheme.onSurface,
                                 letterSpacing: isRead ? 0 : -0.2,
                               ),
                             ),
@@ -284,7 +284,7 @@ class _NotificationCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
-                              color: isRead ? scheme.onSurface.withOpacity(0.5) : scheme.primary,
+                              color: isRead ? scheme.onSurface.withValues(alpha: 0.5) : scheme.primary,
                             ),
                           ),
                         ],
@@ -294,7 +294,7 @@ class _NotificationCard extends StatelessWidget {
                         notification.body,
                         style: TextStyle(
                           fontSize: 14,
-                          color: scheme.onSurface.withOpacity(isRead ? 0.6 : 0.8),
+                          color: scheme.onSurface.withValues(alpha: isRead ? 0.6 : 0.8),
                           height: 1.4,
                         ),
                         maxLines: 2,
@@ -314,7 +314,7 @@ class _NotificationCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: scheme.primary,
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: scheme.primary.withOpacity(0.5), blurRadius: 6)],
+                      boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.5), blurRadius: 6)],
                     ),
                   ),
                 ],
