@@ -265,15 +265,15 @@ class _DocumentsSectionState extends State<DocumentsSection> {
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHighest.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: scheme.outlineVariant.withOpacity(0.5), style: BorderStyle.solid),
+                border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5), style: BorderStyle.solid),
               ),
               child: Column(
                 children: [
-                  Icon(Icons.upload_file_rounded, size: 48, color: scheme.onSurface.withOpacity(0.2)),
+                  Icon(Icons.upload_file_rounded, size: 48, color: scheme.onSurface.withValues(alpha: 0.2)),
                   const SizedBox(height: 16),
                   Text(
                     'No documents uploaded yet.',
-                    style: TextStyle(color: scheme.onSurface.withOpacity(0.6), fontWeight: FontWeight.w500),
+                    style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
                   ),
                 ],
               ),
@@ -292,9 +292,9 @@ class _DocumentsSectionState extends State<DocumentsSection> {
                 return Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest.withOpacity(0.2),
+                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: scheme.outlineVariant.withOpacity(0.5)),
+                    border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     children: [
@@ -302,7 +302,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isPdf ? const Color(0xFFD9534F).withOpacity(0.1) : scheme.primary.withOpacity(0.1),
+                          color: isPdf ? const Color(0xFFD9534F).withValues(alpha: 0.1) : scheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -324,7 +324,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
                             const SizedBox(height: 4),
                             Text(
                               d.fileName,
-                              style: TextStyle(color: scheme.onSurface.withOpacity(0.6), fontSize: 13),
+                              style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), fontSize: 13),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -378,7 +378,7 @@ class _DocumentTypeSelector extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20)],
       ),
       child: SafeArea(
         child: Column(
@@ -389,7 +389,7 @@ class _DocumentTypeSelector extends StatelessWidget {
             const SizedBox(height: 24),
             Text('Select Document Type', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
-            Text('What kind of file are you uploading?', style: TextStyle(color: scheme.onSurface.withOpacity(0.6))),
+            Text('What kind of file are you uploading?', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 24),
             
             ListView.builder(
@@ -416,12 +416,12 @@ class _DocumentTypeSelector extends StatelessWidget {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withOpacity(0.4), shape: BoxShape.circle),
+                          decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: 0.4), shape: BoxShape.circle),
                           child: Icon(getIconForType(docType.key), color: scheme.onSurface),
                         ),
                         const SizedBox(width: 16),
                         Expanded(child: Text(docType.value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
-                        Icon(Icons.chevron_right_rounded, color: scheme.onSurface.withOpacity(0.3)),
+                        Icon(Icons.chevron_right_rounded, color: scheme.onSurface.withValues(alpha: 0.3)),
                       ],
                     ),
                   ),

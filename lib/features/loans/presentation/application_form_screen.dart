@@ -648,7 +648,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
             const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1)),
             
             DropdownButtonFormField<String>(
-              value: _guarantorId,
+              initialValue: _guarantorId,
               icon: const Icon(Icons.keyboard_arrow_down_rounded),
               decoration: InputDecoration(
                 labelText: 'Mandatory Guarantor',
@@ -709,7 +709,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 20),
               child: DropdownButtonFormField<String>(
-                value: _bankName,
+                initialValue: _bankName,
                 icon: const Icon(Icons.keyboard_arrow_down_rounded),
                 decoration: InputDecoration(
                   labelText: 'Bank Name',
