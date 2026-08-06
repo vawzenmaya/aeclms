@@ -1,11 +1,12 @@
 // lib/features/loans/presentation/loans_dashboard_screen.dart
 
 import 'package:aeclms/core/widgets/custom_loader.dart';
+import 'package:aeclms/features/admin/presentation/admin_dashboard_screen.dart';
 import 'package:flutter/material.dart';
-
 import '../../auth/data/auth_service.dart';
 import '../../notifications/data/notifications_repository.dart';
 import '../../notifications/presentation/notifications_screen.dart';
+import '../../profile/presentation/settings_screen.dart';
 import '../data/loan_repository.dart';
 import 'application_form_screen.dart';
 import 'loan_detail_screen.dart';
@@ -35,6 +36,10 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
   List<Map<String, dynamic>> _awaitingAction = [];
   List<Map<String, dynamic>> _history = [];
   int _unreadCount = 0;
+  bool get _isAdmin {
+    // TODO: Connect this to your actual user_roles check. 
+    return true; 
+  }
 
   @override
   void initState() {
@@ -148,7 +153,6 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
     if (confirm == true) {
       setState(() => _loading = true);
       try {
-        // Use the newly created repository method
         await widget.repository.deleteDraft(loan['id'] as String);
         
         if (!mounted) return;
@@ -159,7 +163,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
           ),
         );
-        _load(); // Reload dashboard lists
+        _load(); 
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -179,12 +183,17 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      drawer: _DashboardDrawer(
+        profile: widget.profile,
+        authService: widget.authService,
+        isAdmin: _isAdmin,
+      ),
       appBar: AppBar(
         title: const Text(
           'AEC Dashboard',
           style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5),
         ),
-        centerTitle: false,
+        centerTitle: true,
         actions: [
           IconButton(
             onPressed: () async {
@@ -206,11 +215,6 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
               child: const Icon(Icons.notifications_rounded),
             ),
             tooltip: 'Notifications',
-          ),
-          IconButton(
-            onPressed: () => widget.authService.signOut(),
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Log out',
           ),
           const SizedBox(width: 8),
         ],
@@ -239,7 +243,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
               color: scheme.primary,
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.only(bottom: 120), // Padding for FAB
+                padding: const EdgeInsets.only(bottom: 120), 
                 children: [
                   _StaggeredFadeIn(
                     index: 0,
@@ -320,6 +324,260 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
                 ],
               ),
             ),
+    );
+  }
+}
+
+class _DashboardDrawer extends StatelessWidget {
+  final Profile profile;
+  final AuthService authService;
+  final bool isAdmin;
+
+  const _DashboardDrawer({required this.profile, required this.authService, required this.isAdmin});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final email = authService.currentUser?.email ?? 'Unknown Email';
+
+    return Drawer(
+      backgroundColor: scheme.surface,
+      child: Column(
+        children: [
+          // Header
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 24, 24, 24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  scheme.primary.withValues(alpha: 0.15),
+                  scheme.primary.withValues(alpha: 0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border(bottom: BorderSide(color: scheme.primary.withValues(alpha: 0.1))),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: scheme.primary.withValues(alpha: 0.3), width: 2),
+                  ),
+                  child: CircleAvatar(
+                    radius: 32,
+                    backgroundColor: scheme.primary.withValues(alpha: 0.2),
+                    child: Text(
+                      profile.fullName.isNotEmpty ? profile.fullName[0].toUpperCase() : '?',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: scheme.primary),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  profile.fullName,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  email,
+                  style: TextStyle(fontSize: 14, color: scheme.onSurface.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Links
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              children: [
+                if (isAdmin) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    child: Divider(height: 1),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, bottom: 8, top: 8),
+                    child: Text(
+                      'ADMINISTRATION',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.5,
+                        color: scheme.primary.withOpacity(0.8),
+                      ),
+                    ),
+                  ),
+                  _DrawerItem(
+                    icon: Icons.admin_panel_settings_rounded,
+                    title: 'Admin Hub',
+                    isSelected: false,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => AdminDashboardScreen(profile: profile)));
+                    },
+                  ),
+                ],
+                _DrawerItem(
+                  icon: Icons.dashboard_rounded,
+                  title: 'Dashboard',
+                  isSelected: true,
+                  onTap: () => Navigator.pop(context),
+                ),
+                _DrawerItem(
+                  icon: Icons.settings_rounded,
+                  title: 'Settings',
+                  isSelected: false,
+                  onTap: () {
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SettingsScreen(
+                          profile: profile,
+                          authService: authService,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Divider(height: 1),
+                ),
+                _DrawerItem(
+                  icon: Icons.help_outline_rounded,
+                  title: 'Help & Support',
+                  isSelected: false,
+                  onTap: () {
+                    Navigator.pop(context);
+                    // Add routing when support screen exists
+                  },
+                ),
+              ],
+            ),
+          ),
+          
+          // Footer Logout
+          Padding(
+            padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).padding.bottom + 24),
+            child: InkWell(
+              onTap: () => _confirmSignOut(context),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD9534F).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFD9534F).withValues(alpha: 0.2)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.logout_rounded, color: Color(0xFFD9534F), size: 22),
+                    SizedBox(width: 16),
+                    Text(
+                      'Log Out',
+                      style: TextStyle(color: Color(0xFFD9534F), fontWeight: FontWeight.w700, fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final scheme = Theme.of(context).colorScheme;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: scheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Log Out?', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text('Are you sure you want to log out of your account?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), fontWeight: FontWeight.w600)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFD9534F),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      authService.signOut();
+    }
+  }
+}
+
+class _DrawerItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _DrawerItem({
+    required this.icon,
+    required this.title,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: isSelected ? scheme.primary.withValues(alpha: 0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon, 
+                color: isSelected ? scheme.primary : scheme.onSurface.withValues(alpha: 0.6),
+                size: 24,
+              ),
+              const SizedBox(width: 16),
+              Text(
+                title,
+                style: TextStyle(
+                  color: isSelected ? scheme.primary : scheme.onSurface.withValues(alpha: 0.8),
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

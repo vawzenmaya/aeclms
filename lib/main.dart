@@ -1,15 +1,11 @@
 // lib/main.dart
-//
-// Starter entry point. Fill in your Supabase URL + anon key below
-// (Project Settings -> API in the Supabase dashboard).
-// Once auth + routing screens exist, swap `home:` for go_router.
 
-import 'package:aeclms/features/auth/presentation/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/auth/data/auth_service.dart';
+import 'features/auth/presentation/auth_gate.dart';
 import 'features/loans/data/loan_repository.dart';
 import 'features/notifications/data/notifications_repository.dart';
 
@@ -27,29 +23,37 @@ Future<void> main() async {
   runApp(const LoanManagementApp());
 }
 
-/// Convenience accessor used throughout the app, e.g.:
-/// final loans = await supabase.from('loans').select();
+/// Convenience accessors
 final supabase = Supabase.instance.client;
 final authService = AuthService(supabase);
 final loanRepository = LoanRepository(supabase);
 final notificationsRepository = NotificationsRepository(supabase);
+
+/// GLOBAL THEME STATE: Listens for light/dark mode toggles app-wide
+final ValueNotifier<ThemeMode> appThemeNotifier = ValueNotifier(ThemeMode.system);
 
 class LoanManagementApp extends StatelessWidget {
   const LoanManagementApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Loan Management System',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
-      home: SplashScreen(
-        authService: authService,
-        loanRepository: loanRepository,
-        notificationsRepository: notificationsRepository,
-      ),
+    // ValueListenableBuilder rebuilds the app whenever appThemeNotifier changes
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: appThemeNotifier,
+      builder: (context, currentMode, child) {
+        return MaterialApp(
+          title: 'Loan Management System',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: currentMode, // Dynamically driven by the notifier
+          home: AuthGate(
+            authService: authService,
+            loanRepository: loanRepository,
+            notificationsRepository: notificationsRepository,
+          ),
+        );
+      },
     );
   }
 }
