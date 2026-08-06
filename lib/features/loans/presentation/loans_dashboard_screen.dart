@@ -100,6 +100,80 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
     _load(); // refresh in case something changed
   }
 
+  Future<void> _confirmDelete(Map<String, dynamic> loan) async {
+    final scheme = Theme.of(context).colorScheme;
+    
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: scheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD9534F).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFD9534F)),
+            ),
+            const SizedBox(width: 12),
+            const Text('Delete Draft?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20)),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to permanently delete this draft application? This action cannot be undone.',
+          style: TextStyle(height: 1.4),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), fontWeight: FontWeight.w600)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFD9534F),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() => _loading = true);
+      try {
+        // Use the newly created repository method
+        await widget.repository.deleteDraft(loan['id'] as String);
+        
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Draft application securely deleted.'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+          ),
+        );
+        _load(); // Reload dashboard lists
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: const Color(0xFFD9534F),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        setState(() => _loading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -158,7 +232,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
           _load();
         },
       ),
-        body: _loading
+      body: _loading
           ? Center(child: CustomLoader(size: 56, color: scheme.primary))
           : RefreshIndicator(
               onRefresh: _load,
@@ -211,11 +285,15 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
                           )
                         else
                           ..._mine.asMap().entries.map((entry) {
+                            final loan = entry.value;
+                            final isDeletableDraft = loan['status'] == 'draft';
+                            
                             return _StaggeredFadeIn(
                               index: (_awaitingAction.isNotEmpty ? 4 + _awaitingAction.length : 2) + entry.key,
                               child: _LoanCard(
-                                loan: entry.value,
-                                onTap: () => _openLoan(entry.value),
+                                loan: loan,
+                                onTap: () => _openLoan(loan),
+                                onDelete: isDeletableDraft ? () => _confirmDelete(loan) : null,
                               ),
                             );
                           }),
@@ -224,7 +302,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
                         
                         if (_history.isNotEmpty) ...[
                           _StaggeredFadeIn(
-                            index: 10, // Arbitrary high index to ensure it trails the rest
+                            index: 10, 
                             child: const _SectionLabel('Community History', icon: Icons.history_rounded),
                           ),
                           ..._history.map((l) => _StaggeredFadeIn(
@@ -348,19 +426,20 @@ class _LoanCard extends StatelessWidget {
     required this.onTap, 
     this.isActionRequired = false,
     this.isHistory = false,
+    this.onDelete,
   });
   
   final Map<String, dynamic> loan;
   final VoidCallback onTap;
   final bool isActionRequired;
   final bool isHistory;
+  final VoidCallback? onDelete; // Added callback for deletion
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final amountRaw = loan['amount_requested'] as num?;
     
-    // Format amount with commas (e.g. 50,000.00)
     final amountString = amountRaw != null 
         ? amountRaw.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},') 
         : '-';
@@ -369,7 +448,6 @@ class _LoanCard extends StatelessWidget {
     final isEmergency = loan['loan_category'] == 'emergency';
     final category = isEmergency ? 'Emergency' : 'Normal';
     
-    // Visual styling based on priority
     final cardBorder = isActionRequired 
         ? Border.all(color: scheme.primary.withValues(alpha: 0.5), width: 1.5)
         : Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5), width: 1);
@@ -396,7 +474,7 @@ class _LoanCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Row: Icon, Category & Status
+                // Top Row: Icon, Category & Status + Delete
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -428,7 +506,31 @@ class _LoanCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    LoanStatusChip(status: loan['status'] as String? ?? 'draft'),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (onDelete != null)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: onDelete,
+                                borderRadius: BorderRadius.circular(8),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(6),
+                                  child: Icon(
+                                    Icons.delete_outline_rounded, 
+                                    size: 20, 
+                                    color: const Color(0xFFD9534F).withValues(alpha: 0.8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        LoanStatusChip(status: loan['status'] as String? ?? 'draft'),
+                      ],
+                    ),
                   ],
                 ),
                 
@@ -450,7 +552,7 @@ class _LoanCard extends StatelessWidget {
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Text(
-                      'UGX ', // Adjust currency symbol to your preference
+                      'UGX ',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

@@ -193,6 +193,24 @@ class LoanRepository {
         .single();
   }
 
+  /// Deletes a draft or returned application. 
+  /// Uses .select() to verify the row was actually deleted by RLS.
+  Future<void> deleteDraft(String loanId) async {
+    final response = await _client
+        .from('loans')
+        .delete()
+        .eq('id', loanId)
+        .inFilter('status', ['draft', 'returned_to_applicant'])
+        .select('id');
+        
+    if (response.isEmpty) {
+      throw Exception(
+        'Could not delete application. It may have already been submitted, '
+        'or you do not have permission to delete it.'
+      );
+    }
+  }
+
   /// The full ordered list of stages for a loan's workflow, for the tracker UI.
   Future<List<Map<String, dynamic>>> fetchAllStages(String templateId) async {
     final rows = await _client

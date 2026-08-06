@@ -1,15 +1,15 @@
 // lib/features/loans/presentation/application_form_screen.dart
 
-import 'package:aeclms/core/widgets/custom_loader.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/utils/amount_to_words.dart';
+import '../../../core/widgets/custom_loader.dart';
 import '../../auth/data/auth_service.dart';
 import '../../documents/presentation/document_upload_screen.dart';
 import '../data/loan_repository.dart';
 import '../domain/loan_calculations.dart';
-import 'widgets/repayment_preview_card.dart';
 
 class ApplicationFormScreen extends StatefulWidget {
   const ApplicationFormScreen({
@@ -46,7 +46,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   late String _loanCategory = widget.existingLoan?['loan_category'] as String? ?? 'normal';
   late String _applicantCategory = widget.existingLoan?['category'] as String? ?? 'member';
 
-  // Controllers
+  // Controllers - Notice the .toInt() to strip trailing .0 floats from the DB
   late final _fullNameCtrl =
       TextEditingController(text: widget.existingLoan?['full_name'] as String? ?? widget.profile.fullName);
   late final _emailCtrl = TextEditingController(
@@ -55,20 +55,26 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       text: widget.existingLoan?['phone'] as String? ?? widget.profile.phone ?? '');
   late final _employeeNumberCtrl = TextEditingController(
       text: widget.existingLoan?['employee_number'] as String? ?? widget.profile.employeeNumber ?? '');
+  
   late final _amountCtrl = TextEditingController(
-      text: (widget.existingLoan?['amount_requested'] as num?)?.toString() ?? '');
+      text: (widget.existingLoan?['amount_requested'] as num?)?.toInt().toString() ?? '');
   late final _amountInWordsCtrl =
       TextEditingController(text: widget.existingLoan?['amount_in_words'] as String? ?? '');
+  
+  late final _netPayCtrl =
+      TextEditingController(text: (widget.existingLoan?['net_pay'] as num?)?.toInt().toString() ?? '');
+  late final _netPayInWordsCtrl = 
+      TextEditingController(text: _calculateWordsInitial((widget.existingLoan?['net_pay'] as num?)?.toDouble()));
+      
   late final _purposeCtrl = TextEditingController(text: widget.existingLoan?['purpose'] as String? ?? '');
   late final _securityDescCtrl =
       TextEditingController(text: widget.existingLoan?['security_description'] as String? ?? '');
   late final _securityValueCtrl = TextEditingController(
-      text: (widget.existingLoan?['security_estimated_value'] as num?)?.toString() ?? '');
-  late final _netPayCtrl =
-      TextEditingController(text: (widget.existingLoan?['net_pay'] as num?)?.toString() ?? '');
+      text: (widget.existingLoan?['security_estimated_value'] as num?)?.toInt().toString() ?? '');
+      
   late final _bankHolderCtrl = TextEditingController(
       text: widget.existingLoan?['bank_account_holder_name'] as String? ?? widget.profile.fullName);
-  late final _bankNameCtrl = TextEditingController(text: widget.existingLoan?['bank_name'] as String? ?? '');
+  late String? _bankName = widget.existingLoan?['bank_name'] as String?;
   late final _bankAccountCtrl =
       TextEditingController(text: widget.existingLoan?['bank_account_number'] as String? ?? '');
   late final _bankSortCodeCtrl =
@@ -90,11 +96,38 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
 
   bool get _isEditingDraft => widget.existingLoan != null;
 
+  // Major Ugandan Commercial Banks
+  final List<String> _ugandanBanks = [
+    'Absa Bank Uganda',
+    'Bank of Africa',
+    'Bank of Baroda',
+    'Centenary Bank',
+    'Citibank Uganda',
+    'DFCU Bank',
+    'Diamond Trust Bank (DTB)',
+    'Ecobank Uganda',
+    'Equity Bank',
+    'Housing Finance Bank',
+    'KCB Bank',
+    'NCBA Bank',
+    'PostBank Uganda',
+    'Stanbic Bank',
+    'Standard Chartered Bank',
+    'Tropical Bank',
+    'UBA Uganda'
+  ];
+
   @override
   void initState() {
     super.initState();
     _amountCtrl.addListener(_onAmountChanged);
+    _netPayCtrl.addListener(_onNetPayChanged);
     _loadContext();
+  }
+
+  String _calculateWordsInitial(double? value) {
+    if (value == null) return '';
+    return AmountToWords.convert(value);
   }
 
   Future<void> _loadContext() async {
@@ -117,6 +150,12 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   void _onAmountChanged() {
     final value = double.tryParse(_amountCtrl.text.replaceAll(',', ''));
     _amountInWordsCtrl.text = value != null ? AmountToWords.convert(value) : '';
+    setState(() {}); // refresh preview
+  }
+  
+  void _onNetPayChanged() {
+    final value = double.tryParse(_netPayCtrl.text.replaceAll(',', ''));
+    _netPayInWordsCtrl.text = value != null ? AmountToWords.convert(value) : '';
     setState(() {}); // refresh preview
   }
 
@@ -168,7 +207,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   void _nextStep() {
     bool isValid = true;
 
-    // Validate the current step's form before proceeding
     if (_currentStep == 1) isValid = _step1Key.currentState?.validate() ?? true;
     if (_currentStep == 2) {
       isValid = _step2Key.currentState?.validate() ?? true;
@@ -177,9 +215,19 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         return;
       }
     }
-    if (_currentStep == 3) isValid = _step3Key.currentState?.validate() ?? true;
+    if (_currentStep == 3) {
+      isValid = _step3Key.currentState?.validate() ?? true;
+      if (_guarantorId == null) {
+         setState(() => _error = 'A community guarantor is required to proceed.');
+         return;
+      }
+    }
     if (_currentStep == 4) {
       isValid = _step4Key.currentState?.validate() ?? true;
+      if (_bankName == null) {
+        setState(() => _error = 'Please select your bank.');
+        return;
+      }
       if (!_bankDetailsConfirmed) {
         setState(() => _error = 'Please confirm your bank details to proceed.');
         return;
@@ -207,9 +255,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     });
   }
 
-  /// Saves the loan as a draft (never submits directly — submission now
-  /// always happens from the dedicated Documents screen, since a loan can't
-  /// be submitted without at least one uploaded document).
   Future<void> _handleSave() async {
     setState(() {
       _saving = true;
@@ -233,11 +278,11 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         purpose: _purposeCtrl.text.trim(),
         securityDescription: _securityDescCtrl.text.trim().isEmpty ? null : _securityDescCtrl.text.trim(),
         securityEstimatedValue: double.tryParse(_securityValueCtrl.text.replaceAll(',', '')),
-        expectedEndDate: _expectedEndDate ?? DateTime.now(), // Fallback for draft, caught by validation if submitting
+        expectedEndDate: _expectedEndDate ?? DateTime.now(),
         netPay: double.parse(_netPayCtrl.text.replaceAll(',', '')),
         guarantorId: _guarantorId,
         bankAccountHolderName: _bankHolderCtrl.text.trim(),
-        bankName: _bankNameCtrl.text.trim(),
+        bankName: _bankName ?? 'Unknown',
         bankAccountNumber: _bankAccountCtrl.text.trim(),
         bankSortCode: _bankSortCodeCtrl.text.trim().isEmpty ? null : _bankSortCodeCtrl.text.trim(),
         bankSwiftCode: _bankSwiftCtrl.text.trim(),
@@ -252,7 +297,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
         ),
       );
-      // Always go to the Documents screen next — submission happens from there.
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => DocumentUploadScreen(
@@ -276,10 +320,11 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   @override
   void dispose() {
     _amountCtrl.removeListener(_onAmountChanged);
+    _netPayCtrl.removeListener(_onNetPayChanged);
     for (final c in [
       _fullNameCtrl, _emailCtrl, _phoneCtrl, _employeeNumberCtrl, _amountCtrl,
       _amountInWordsCtrl, _purposeCtrl, _securityDescCtrl, _securityValueCtrl,
-      _netPayCtrl, _bankHolderCtrl, _bankNameCtrl, _bankAccountCtrl,
+      _netPayCtrl, _netPayInWordsCtrl, _bankHolderCtrl, _bankAccountCtrl,
       _bankSortCodeCtrl, _bankSwiftCtrl,
     ]) {
       c.dispose();
@@ -353,7 +398,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
               switchInCurve: Curves.easeOutCubic,
               switchOutCurve: Curves.easeInCubic,
               transitionBuilder: (Widget child, Animation<double> animation) {
-                // Determine slide direction based on key comparison (hacky but works for simple ints)
                 final inAnimation = Tween<Offset>(
                   begin: const Offset(0.05, 0),
                   end: Offset.zero,
@@ -411,45 +455,105 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _StepHeader(title: 'Loan Classification', subtitle: 'Let\'s start with the basics.', icon: Icons.category_rounded),
-        _card([
-          _EnumChips(
-            label: 'Loan Category',
-            value: _loanCategory,
-            options: const {'normal': 'Normal', 'emergency': 'Emergency'},
-            onChanged: (v) => setState(() {
-              _loanCategory = v;
-              if (v == 'emergency') _loanType = 'new';
-            }),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Divider(height: 1),
-          ),
-          _EnumChips(
-            label: 'New or Top-up',
-            value: _loanType,
-            options: {
-              'new': 'New loan',
-              if (_loanCategory == 'normal') 'topup': 'Top-up',
-            },
-            onChanged: (v) => setState(() => _loanType = v),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Divider(height: 1),
-          ),
-          _EnumChips(
-            label: 'Applicant Role',
-            value: _applicantCategory,
-            options: const {'member': 'Member', 'non_member': 'Non-Member'},
-            onChanged: (v) => setState(() {
-              _applicantCategory = v;
-              if (v == 'member') {
-                _employeeNumberCtrl.text = widget.profile.employeeNumber ?? '';
-              }
-            }),
-          ),
-        ]),
+        
+        Text('Category', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _SelectionCard(
+                title: 'Normal',
+                subtitle: 'Standard timeline',
+                icon: Icons.calendar_month_rounded,
+                isSelected: _loanCategory == 'normal',
+                onTap: () => setState(() => _loanCategory = 'normal'),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _SelectionCard(
+                title: 'Emergency',
+                subtitle: 'Quick flat rate',
+                icon: Icons.bolt_rounded,
+                isSelected: _loanCategory == 'emergency',
+                onTap: () => setState(() {
+                  _loanCategory = 'emergency';
+                  _loanType = 'new';
+                }),
+              ),
+            ),
+          ],
+        ),
+        
+        const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider(height: 1)),
+        
+        Text('Loan Type', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _SelectionCard(
+                title: 'New Loan',
+                subtitle: 'Fresh application',
+                icon: Icons.add_circle_outline_rounded,
+                isSelected: _loanType == 'new',
+                onTap: () => setState(() => _loanType = 'new'),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _loanCategory == 'normal' 
+                  ? _SelectionCard(
+                      title: 'Top-up',
+                      subtitle: 'Add to existing',
+                      icon: Icons.upgrade_rounded,
+                      isSelected: _loanType == 'topup',
+                      onTap: () => setState(() => _loanType = 'topup'),
+                    )
+                  : Opacity(
+                      opacity: 0.3,
+                      child: _SelectionCard(
+                        title: 'Top-up',
+                        subtitle: 'Normal loans only',
+                        icon: Icons.block_rounded,
+                        isSelected: false,
+                        onTap: () {},
+                      ),
+                    ),
+            ),
+          ],
+        ),
+
+        const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider(height: 1)),
+        
+        Text('Applicant Role', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _SelectionCard(
+                title: 'Member',
+                subtitle: 'Registered AEC',
+                icon: Icons.verified_user_rounded,
+                isSelected: _applicantCategory == 'member',
+                onTap: () => setState(() {
+                  _applicantCategory = 'member';
+                  _employeeNumberCtrl.text = widget.profile.employeeNumber ?? '';
+                }),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _SelectionCard(
+                title: 'Non-Member',
+                subtitle: 'External entity',
+                icon: Icons.person_outline_rounded,
+                isSelected: _applicantCategory == 'non_member',
+                onTap: () => setState(() => _applicantCategory = 'non_member'),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -464,8 +568,8 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           const _StepHeader(title: 'Applicant Profile', subtitle: 'Confirm your personal details.', icon: Icons.person_rounded),
           _card([
             _field(_fullNameCtrl, "Full Legal Name", icon: Icons.badge_outlined, validator: _required),
-            _field(_emailCtrl, 'Email Address', icon: Icons.email_outlined, validator: _required),
-            _field(_phoneCtrl, 'Phone Number', icon: Icons.phone_outlined, validator: _required),
+            _field(_emailCtrl, 'Email Address', icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress, validator: _required),
+            _field(_phoneCtrl, 'Phone Number', icon: Icons.phone_outlined, keyboardType: TextInputType.phone, formatters: [FilteringTextInputFormatter.digitsOnly], validator: _required),
             _field(
               _employeeNumberCtrl,
               _applicantCategory == 'member' ? 'Employee Number (AEC/...)' : 'ID / Reference Number',
@@ -488,11 +592,16 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           const _StepHeader(title: 'Loan Particulars', subtitle: 'How much do you need?', icon: Icons.request_quote_rounded),
           _card([
             _field(_amountCtrl, 'Amount Applied For',
-                icon: Icons.attach_money_rounded, keyboardType: TextInputType.number, validator: _requiredNumber),
-            _field(_amountInWordsCtrl, 'Amount in Words',
-                icon: Icons.text_fields_rounded, maxLines: 2),
+                icon: Icons.attach_money_rounded, keyboardType: TextInputType.number, formatters: [FilteringTextInputFormatter.digitsOnly], validator: _requiredNumber),
+            _field(_amountInWordsCtrl, 'Amount in Words (Auto)',
+                icon: Icons.text_fields_rounded, maxLines: 2, readOnly: true),
+                
             _field(_purposeCtrl, 'Purpose of the Loan',
-                icon: Icons.edit_note_rounded, maxLines: 3, validator: _required),
+                icon: Icons.edit_note_rounded, 
+                maxLength: 250, // Limits characters and shows counter automatically
+                // textAlign: TextAlign.center, // Centers the input text
+                validator: _required),
+            
             const SizedBox(height: 8),
             _DatePickerField(
               label: 'Expected End Date',
@@ -511,9 +620,11 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
                 ),
               ),
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             _field(_netPayCtrl, 'Net Pay (Monthly)',
-                icon: Icons.account_balance_wallet_outlined, keyboardType: TextInputType.number, validator: _requiredNumber),
+                icon: Icons.account_balance_wallet_outlined, keyboardType: TextInputType.number, formatters: [FilteringTextInputFormatter.digitsOnly], validator: _requiredNumber),
+            _field(_netPayInWordsCtrl, 'Net Pay in Words (Auto)',
+                icon: Icons.text_fields_rounded, maxLines: 2, readOnly: true),
           ]),
           if (_error != null) _buildErrorBanner(),
         ],
@@ -531,50 +642,53 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           const _StepHeader(title: 'Security & Guarantor', subtitle: 'Provide backing for your application.', icon: Icons.shield_rounded),
           _card([
             _field(_securityDescCtrl, "Security Description (Optional)", icon: Icons.inventory_2_outlined),
-            _field(_securityValueCtrl, 'Estimated Value',
-                icon: Icons.price_change_outlined, keyboardType: TextInputType.number),
-            const SizedBox(height: 16),
+            _field(_securityValueCtrl, 'Estimated Value (Optional)',
+                icon: Icons.price_change_outlined, keyboardType: TextInputType.number, formatters: [FilteringTextInputFormatter.digitsOnly]),
+            
+            const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1)),
+            
             DropdownButtonFormField<String>(
-              initialValue: _guarantorId,
+              value: _guarantorId,
               icon: const Icon(Icons.keyboard_arrow_down_rounded),
               decoration: InputDecoration(
-                labelText: 'Select Guarantor',
+                labelText: 'Mandatory Guarantor',
                 prefixIcon: const Icon(Icons.group_add_outlined),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                 filled: true,
               ),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('No guarantor needed')),
-                ..._guarantors.map((g) => DropdownMenuItem(value: g.id, child: Text(g.fullName))),
-              ],
-              onChanged: (v) => setState(() => _guarantorId = v),
+              items: _guarantors.map((g) => DropdownMenuItem(value: g.id, child: Text(g.fullName))).toList(),
+              onChanged: (v) => setState(() {
+                _guarantorId = v;
+                _error = null;
+              }),
+              validator: (v) => v == null ? 'A community guarantor is required' : null,
             ),
-            if (_guarantorId != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.info_outline_rounded,
-                        size: 20, color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Your guarantor will be notified and must confirm digitally before '
-                        'this application proceeds to the Loan Officer.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.4),
-                      ),
-                    ),
-                  ],
-                ),
+            
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
               ),
-            ],
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.gavel_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'A guarantor is mandatory and must be a registered member of the AEC community. '
+                      'They will be notified and must sign digitally before the loan officer reviews this.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ]),
+          if (_error != null) _buildErrorBanner(),
         ],
       ),
     );
@@ -590,11 +704,32 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           const _StepHeader(title: 'Disbursement Details', subtitle: 'Where should we send the funds?', icon: Icons.account_balance_rounded),
           _card([
             _field(_bankHolderCtrl, 'Account Holder Name', icon: Icons.person_outline, validator: _required),
-            _field(_bankNameCtrl, 'Bank Name', icon: Icons.account_balance_outlined, validator: _required),
-            _field(_bankAccountCtrl, 'Account Number', icon: Icons.pin_outlined, validator: _required),
+            
+            // Ugandan Banks Dropdown
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: DropdownButtonFormField<String>(
+                value: _bankName,
+                icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                decoration: InputDecoration(
+                  labelText: 'Bank Name',
+                  prefixIcon: Icon(Icons.account_balance_outlined, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  filled: true,
+                ),
+                items: _ugandanBanks.map((bank) => DropdownMenuItem(value: bank, child: Text(bank, style: const TextStyle(fontWeight: FontWeight.w500)))).toList(),
+                onChanged: (v) => setState(() {
+                  _bankName = v;
+                  _error = null;
+                }),
+                validator: (v) => v == null ? 'Please select your bank' : null,
+              ),
+            ),
+            
+            _field(_bankAccountCtrl, 'Account Number', icon: Icons.pin_outlined, keyboardType: TextInputType.number, formatters: [FilteringTextInputFormatter.digitsOnly], validator: _required),
             Row(
               children: [
-                Expanded(child: _field(_bankSortCodeCtrl, 'Sort Code', icon: Icons.tag)),
+                Expanded(child: _field(_bankSortCodeCtrl, 'Sort Code', icon: Icons.tag, keyboardType: TextInputType.number, formatters: [FilteringTextInputFormatter.digitsOnly])),
                 const SizedBox(width: 12),
                 Expanded(child: _field(_bankSwiftCtrl, 'SWIFT / BIC', icon: Icons.public, validator: _required)),
               ],
@@ -629,19 +764,22 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   }
 
   // --- Step 5: Review & Save ---
-  Widget _buildStep5Review() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _StepHeader(title: 'Review Application', subtitle: 'Ensure everything looks correct before continuing.', icon: Icons.insights_rounded),
-        RepaymentPreviewCard(
-          preview: _preview,
-          amountRequested: double.tryParse(_amountCtrl.text.replaceAll(',', '')) ?? 0,
-        ),
-        if (_error != null) _buildErrorBanner(),
-      ],
-    );
-  }
+    Widget _buildStep5Review() {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _StepHeader(title: 'Review Application', subtitle: 'Ensure everything looks correct before continuing.', icon: Icons.insights_rounded),
+          
+          _PremiumRepaymentSummary(
+            preview: _preview, 
+            amountRequested: double.tryParse(_amountCtrl.text.replaceAll(',', '')) ?? 0,
+            termMonths: _termMonths, // Passing the calculated term directly to the UI
+          ),
+          
+          if (_error != null) _buildErrorBanner(),
+        ],
+      );
+    }
 
   Widget _buildBottomNav() {
     return Row(
@@ -732,6 +870,10 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     IconData? icon,
     TextInputType? keyboardType,
     int maxLines = 1,
+    int? maxLength,
+    TextAlign textAlign = TextAlign.start,
+    bool readOnly = false,
+    List<TextInputFormatter>? formatters,
     String? Function(String?)? validator,
   }) {
     return Padding(
@@ -739,9 +881,17 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       child: TextFormField(
         controller: ctrl,
         keyboardType: keyboardType,
+        inputFormatters: formatters,
         maxLines: maxLines,
+        maxLength: maxLength,
+        textAlign: textAlign,
+        readOnly: readOnly,
         validator: validator,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+        style: TextStyle(
+          fontSize: 15, 
+          fontWeight: FontWeight.w500, 
+          color: readOnly ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5) : Theme.of(context).colorScheme.onSurface,
+        ),
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: icon != null ? Icon(icon, size: 22, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)) : null,
@@ -800,59 +950,67 @@ class _StepHeader extends StatelessWidget {
   }
 }
 
-class _EnumChips extends StatelessWidget {
-  const _EnumChips({
-    required this.label,
-    required this.value,
-    required this.options,
-    required this.onChanged,
+class _SelectionCard extends StatelessWidget {
+  const _SelectionCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
   });
 
-  final String label;
-  final String value;
-  final Map<String, String> options;
-  final ValueChanged<String> onChanged;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: options.entries.map((e) {
-            final isSelected = value == e.key;
-            return ChoiceChip(
-              label: Text(e.value),
-              selected: isSelected,
-              showCheckmark: false,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              labelStyle: TextStyle(
-                color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              ),
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-              selectedColor: Theme.of(context).colorScheme.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+    final scheme = Theme.of(context).colorScheme;
+    
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          decoration: BoxDecoration(
+            color: isSelected ? scheme.primary.withValues(alpha: 0.15) : scheme.surfaceContainerHighest.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected ? scheme.primary : scheme.outlineVariant.withValues(alpha: 0.5),
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, size: 32, color: isSelected ? scheme.primary : scheme.onSurface.withValues(alpha: 0.5)),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  color: isSelected ? scheme.primary : scheme.onSurface,
                 ),
               ),
-              onSelected: (_) => onChanged(e.key),
-            );
-          }).toList(),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: scheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -886,6 +1044,149 @@ class _DatePickerField extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PremiumRepaymentSummary extends StatelessWidget {
+  final LoanPreview preview;
+  final double amountRequested;
+  final int? termMonths;
+
+  const _PremiumRepaymentSummary({
+    required this.preview, 
+    required this.amountRequested,
+    this.termMonths,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final formatter = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    
+    // Updated to accept num? to safely handle the double? from LoanPreview
+    String format(num? value) => (value ?? 0).toStringAsFixed(0).replaceAllMapped(formatter, (Match m) => '${m[1]},');
+    
+    // Calculate UI-only display metrics safely
+    final installment = preview.installmentAmount ?? 0.0;
+    final months = termMonths ?? 0;
+    final totalRepayment = installment * months;
+    final interestAmount = totalRepayment > amountRequested ? (totalRepayment - amountRequested) : 0.0;
+    
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 30, offset: const Offset(0, 10)),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Top Receipt Header
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.1),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                Text('ESTIMATED INSTALLMENT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1, color: scheme.primary)),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text('UGX ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: scheme.primary.withValues(alpha: 0.7))),
+                    Text(format(installment), style: TextStyle(fontSize: 40, fontWeight: FontWeight.w800, letterSpacing: -1.5, color: scheme.primary)),
+                  ],
+                ),
+                Text('per month for $months months', style: TextStyle(fontSize: 14, color: scheme.primary.withValues(alpha: 0.8))),
+              ],
+            ),
+          ),
+          
+          // Dashed Divider
+          Row(
+            children: List.generate(30, (index) => Expanded(
+              child: Container(color: index.isEven ? scheme.outlineVariant : Colors.transparent, height: 1),
+            )),
+          ),
+          
+          // Breakdown Details
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                _SummaryRow('Principal Amount', 'UGX ${format(amountRequested)}'),
+                const SizedBox(height: 16),
+                _SummaryRow('Estimated Interest', '+ UGX ${format(interestAmount)}'),
+                const SizedBox(height: 16),
+                // Assuming processingFee is a field on LoanPreview. 
+                // Using dynamic lookup in case it's named differently, but type-safe format.
+                _SummaryRow('Processing Fee', 'UGX ${format(preview.processingFee)}', isSub: true),
+                
+                const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1)),
+                
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Total Repayment', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    Text('UGX ${format(totalRepayment)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          // DTI Warning (if applicable)
+          if (preview.dtiExceeded && preview.debtToIncomeRatio != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD9534F).withValues(alpha: 0.1),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Color(0xFFD9534F), size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Debt-to-income ratio is ${preview.debtToIncomeRatio!.toStringAsFixed(1)}%. '
+                      'This exceeds the standard threshold and will be flagged for committee review.',
+                      style: const TextStyle(fontSize: 12, color: Color(0xFFD9534F), height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool isSub;
+
+  const _SummaryRow(this.label, this.value, {this.isSub = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: scheme.onSurface.withValues(alpha: isSub ? 0.5 : 0.7), fontSize: 15)),
+        Text(value, style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: isSub ? 0.5 : 1), fontSize: 15)),
+      ],
     );
   }
 }
