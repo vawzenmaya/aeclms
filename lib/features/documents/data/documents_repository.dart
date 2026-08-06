@@ -67,7 +67,23 @@ class DocumentsRepository {
   }
 
   Future<void> delete(LoanDocument doc) async {
+    // 1. Remove the actual file from the Supabase Storage bucket
     await _client.storage.from(_bucket).remove([doc.storagePath]);
-    await _client.from('loan_documents').delete().eq('id', doc.id);
+    
+    // 2. Remove the metadata row from the loan_documents table
+    // We use .select('id') to force Supabase to return the deleted row.
+    final response = await _client
+        .from('loan_documents')
+        .delete()
+        .eq('id', doc.id)
+        .select('id');
+        
+    // 3. If the response is empty, RLS silently blocked the table deletion
+    if (response.isEmpty) {
+      throw Exception(
+        'Could not remove document record. It may be locked by security policies '
+        'if the application has already been submitted.'
+      );
+    }
   }
 }
