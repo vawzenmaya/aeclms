@@ -31,9 +31,6 @@ dependencies:
   # Files / documents (for uploading loan forms, IDs, etc.)
   image_picker: ^1.2.3
 
-  # Notifications (local + push later via Edge Function -> FCM)
-  flutter_local_notifications: ^22.2.0
-
   # Utilities
   intl: ^0.20.2
   equatable: ^2.1.0
@@ -41,6 +38,10 @@ dependencies:
   file_picker: ^11.0.3
   pdf: ^3.13.0
   printing: ^5.15.0
+  firebase_core: ^4.13.0
+  firebase_messaging: ^16.5.0
+  flutter_local_notifications: ^22.2.0
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_test:
@@ -54,12 +55,19 @@ flutter:
   assets:
     - assets/animations/loading_animation/
     - assets/animations/splash_animation/
+    - assets/app_icon.png
+    - assets/icon/icon.png
   # fonts:
   #   - family:
   #     fonts:
   #       - asset:
   #       - asset:
   #         style:
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/app_icon.png"
 
 dependency_overrides:
   meta: 1.18.0

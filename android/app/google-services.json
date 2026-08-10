@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "30193772972",
+    "project_id": "aeclms-5c6fc",
+    "storage_bucket": "aeclms-5c6fc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:30193772972:android:1cbd3c85ca144b087db209",
+        "android_client_info": {
+          "package_name": "com.example.aeclms"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5wV1QsE0zc9IKWWyJ3a3Kyrw25APLPNA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

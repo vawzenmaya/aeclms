@@ -34,9 +34,9 @@ class PendingAssignmentScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(32),
                     decoration: BoxDecoration(
-                      color: scheme.primary.withOpacity(0.1),
+                      color: scheme.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
-                      border: Border.all(color: scheme.primary.withOpacity(0.2), width: 2),
+                      border: Border.all(color: scheme.primary.withValues(alpha: 0.2), width: 2),
                     ),
                     child: Icon(
                       Icons.admin_panel_settings_rounded, 
@@ -74,7 +74,7 @@ class PendingAssignmentScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
-                    color: scheme.onSurface.withOpacity(0.6),
+                    color: scheme.onSurface.withValues(alpha: 0.6),
                     height: 1.5,
                   ),
                 ),
@@ -154,7 +154,7 @@ class HomePlaceholderScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
-                      color: scheme.primary.withOpacity(0.1),
+                      color: scheme.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(Icons.savings_rounded, size: 64, color: scheme.primary),
@@ -188,7 +188,7 @@ class HomePlaceholderScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
-                    color: scheme.onSurface.withOpacity(0.6),
+                    color: scheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ),

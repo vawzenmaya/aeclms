@@ -109,11 +109,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                border: Border.all(color: scheme.primary.withOpacity(0.3), width: 2),
+                                border: Border.all(color: scheme.primary.withValues(alpha: 0.3), width: 2),
                               ),
                               child: CircleAvatar(
                                 radius: 48,
-                                backgroundColor: scheme.primary.withOpacity(0.15),
+                                backgroundColor: scheme.primary.withValues(alpha: 0.15),
                                 child: Text(
                                   widget.profile.fullName.isNotEmpty ? widget.profile.fullName[0].toUpperCase() : '?',
                                   style: TextStyle(fontSize: 36, fontWeight: FontWeight.w800, color: scheme.primary),
@@ -143,9 +143,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(context).cardTheme.color,
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: scheme.outlineVariant.withOpacity(0.5)),
+                          border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 24, offset: const Offset(0, 8)),
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8)),
                           ],
                         ),
                         child: Column(
@@ -194,10 +194,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               decoration: BoxDecoration(
                 color: Theme.of(context).cardTheme.color,
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 24, offset: const Offset(0, -8)),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, -8)),
                 ],
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                border: Border(top: BorderSide(color: scheme.outlineVariant.withOpacity(0.5))),
+                border: Border(top: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5))),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -208,9 +208,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       padding: const EdgeInsets.all(16),
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD9534F).withOpacity(0.1),
+                        color: const Color(0xFFD9534F).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFD9534F).withOpacity(0.3)),
+                        border: Border.all(color: const Color(0xFFD9534F).withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
@@ -266,7 +266,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 22, color: scheme.onSurface.withOpacity(0.5)),
+        prefixIcon: Icon(icon, size: 22, color: scheme.onSurface.withValues(alpha: 0.5)),
       ),
     );
   }

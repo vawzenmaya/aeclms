@@ -1,6 +1,5 @@
 // lib/features/admin/services/pdf_report_service.dart
 
-import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -97,6 +96,123 @@ class PdfReportService {
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
       name: 'AEC_Loan_Schedule_$reportMonth.pdf',
+    );
+  }
+
+  /// Generates the Individual Amortization Schedule
+  static Future<void> generateAmortizationSchedule({
+    required String applicantName,
+    required double loanAmount,
+    required double interestRate,
+    required int periodMonths,
+    required double monthlyInstallment,
+    required double netPay, // NEW: Added Net Pay parameter
+    required List<Map<String, dynamic>> scheduleRows, 
+  }) async {
+    final pdf = pw.Document();
+    final currency = NumberFormat("#,##0", "en_US");
+
+    // CALCULATIONS
+    double ratio = (netPay / monthlyInstallment) * 100;
+    double totalInstallment = scheduleRows.fold(0, (sum, row) => sum + row['installment']);
+    double totalInterest = scheduleRows.fold(0, (sum, row) => sum + row['interest']);
+    double totalPrincipal = scheduleRows.fold(0, (sum, row) => sum + row['principal']);
+
+    // Build Table Data
+    List<List<String>> tableData = List<List<String>>.generate(
+      scheduleRows.length,
+      (index) {
+        final row = scheduleRows[index];
+        return [
+          row['period'].toString(),
+          currency.format(row['installment'] ?? 0),
+          currency.format(row['interest'] ?? 0),
+          currency.format(row['principal'] ?? 0),
+          currency.format(row['balance'] ?? 0),
+        ];
+      },
+    );
+
+    // Append the Totals Row at the bottom
+    tableData.add([
+      'TOTAL',
+      currency.format(totalInstallment),
+      currency.format(totalInterest),
+      currency.format(totalPrincipal),
+      '-',
+    ]);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (context) => [
+          // Header Section
+          pw.Text('AMORTIZATION SCHEDULE', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+          pw.SizedBox(height: 16),
+          
+          // Loan Summary Box
+          pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey100,
+              border: pw.Border.all(color: PdfColors.grey300),
+              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('Applicant: $applicantName', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.SizedBox(height: 4),
+                    pw.Text('Loan Amount: UGX ${currency.format(loanAmount)}'),
+                    pw.SizedBox(height: 4),
+                    pw.Text('Interest Rate: ${interestRate.toStringAsFixed(1)}%'),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text('Period: $periodMonths Months', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.SizedBox(height: 4),
+                    pw.Text('Net Pay: UGX ${currency.format(netPay)}'),
+                    pw.SizedBox(height: 4),
+                    pw.Text('Monthly Installment: UGX ${currency.format(monthlyInstallment)}'),
+                    pw.SizedBox(height: 4),
+                    pw.Text('Ratio (Net Pay/Inst.): ${ratio.toStringAsFixed(2)}%', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.green700)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          pw.SizedBox(height: 24),
+
+          // Amortization Table
+          pw.TableHelper.fromTextArray(
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 10),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue900),
+            cellStyle: const pw.TextStyle(fontSize: 9),
+            cellAlignments: {
+              0: pw.Alignment.center,       
+              1: pw.Alignment.centerRight,  
+              2: pw.Alignment.centerRight,  
+              3: pw.Alignment.centerRight,  
+              4: pw.Alignment.centerRight,  
+            },
+            oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
+            headers: ['Month', 'Installment (UGX)', 'Interest (UGX)', 'Principal (UGX)', 'Balance (UGX)'],
+            data: tableData, // Passed the data containing the appended Totals row
+          ),
+        ],
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: 'Amortization_${applicantName.replaceAll(' ', '_')}.pdf',
     );
   }
 }

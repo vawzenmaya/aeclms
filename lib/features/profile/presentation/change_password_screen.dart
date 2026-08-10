@@ -91,9 +91,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: scheme.primary.withOpacity(0.1),
+                            color: scheme.primary.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
-                            border: Border.all(color: scheme.primary.withOpacity(0.2), width: 2),
+                            border: Border.all(color: scheme.primary.withValues(alpha: 0.2), width: 2),
                           ),
                           child: Icon(Icons.shield_rounded, size: 64, color: scheme.primary),
                         ),
@@ -114,7 +114,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       child: Text(
                         'Ensure your account stays secure by using a strong password.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: scheme.onSurface.withOpacity(0.6), height: 1.4),
+                        style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), height: 1.4),
                       ),
                     ),
                     const SizedBox(height: 40),
@@ -127,9 +127,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(context).cardTheme.color,
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: scheme.outlineVariant.withOpacity(0.5)),
+                          border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 24, offset: const Offset(0, 8)),
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8)),
                           ],
                         ),
                         child: Column(
@@ -145,11 +145,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                               decoration: InputDecoration(
                                 labelText: 'New Password',
-                                prefixIcon: Icon(Icons.lock_outline_rounded, size: 22, color: scheme.onSurface.withOpacity(0.5)),
+                                prefixIcon: Icon(Icons.lock_outline_rounded, size: 22, color: scheme.onSurface.withValues(alpha: 0.5)),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscureNew ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                    color: scheme.onSurface.withOpacity(0.5),
+                                    color: scheme.onSurface.withValues(alpha: 0.5),
                                     size: 20,
                                   ),
                                   onPressed: () => setState(() => _obscureNew = !_obscureNew), // FIXED HERE
@@ -170,11 +170,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                               decoration: InputDecoration(
                                 labelText: 'Confirm New Password',
-                                prefixIcon: Icon(Icons.lock_reset_rounded, size: 22, color: scheme.onSurface.withOpacity(0.5)),
+                                prefixIcon: Icon(Icons.lock_reset_rounded, size: 22, color: scheme.onSurface.withValues(alpha: 0.5)),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                    color: scheme.onSurface.withOpacity(0.5),
+                                    color: scheme.onSurface.withValues(alpha: 0.5),
                                     size: 20,
                                   ),
                                   onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm), // FIXED HERE
@@ -204,10 +204,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               decoration: BoxDecoration(
                 color: Theme.of(context).cardTheme.color,
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 24, offset: const Offset(0, -8)),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, -8)),
                 ],
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                border: Border(top: BorderSide(color: scheme.outlineVariant.withOpacity(0.5))),
+                border: Border(top: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5))),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -218,9 +218,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       padding: const EdgeInsets.all(16),
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD9534F).withOpacity(0.1),
+                        color: const Color(0xFFD9534F).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFD9534F).withOpacity(0.3)),
+                        border: Border.all(color: const Color(0xFFD9534F).withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [

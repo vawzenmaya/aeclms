@@ -411,7 +411,7 @@ class _DashboardDrawer extends StatelessWidget {
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.5,
-                        color: scheme.primary.withOpacity(0.8),
+                        color: scheme.primary.withValues(alpha: 0.8),
                       ),
                     ),
                   ),

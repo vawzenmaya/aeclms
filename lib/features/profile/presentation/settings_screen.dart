@@ -50,14 +50,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    scheme.primary.withOpacity(0.15),
-                    scheme.primary.withOpacity(0.02),
+                    scheme.primary.withValues(alpha: 0.15),
+                    scheme.primary.withValues(alpha: 0.02),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: scheme.primary.withOpacity(0.1)),
+                border: Border.all(color: scheme.primary.withValues(alpha: 0.1)),
               ),
               child: Column(
                 children: [
@@ -65,11 +65,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: scheme.primary.withOpacity(0.3), width: 2),
+                      border: Border.all(color: scheme.primary.withValues(alpha: 0.3), width: 2),
                     ),
                     child: CircleAvatar(
                       radius: 40,
-                      backgroundColor: scheme.primary.withOpacity(0.2),
+                      backgroundColor: scheme.primary.withValues(alpha: 0.2),
                       child: Text(
                         widget.profile.fullName.isNotEmpty ? widget.profile.fullName[0].toUpperCase() : '?',
                         style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: scheme.primary),
@@ -85,12 +85,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest.withOpacity(0.5),
+                      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       email,
-                      style: TextStyle(fontSize: 13, color: scheme.onSurface.withOpacity(0.8), fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -151,7 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onChanged: (val) {
                       setState(() => _pushNotificationsEnabled = val);
                     },
-                    activeColor: scheme.primary,
+                    activeThumbColor: scheme.primary,
                   ),
                   onTap: () {
                     // Tapping the row toggles the switch
@@ -168,7 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       // Instantly updates the app theme globally!
                       appThemeNotifier.value = val ? ThemeMode.dark : ThemeMode.light;
                     },
-                    activeColor: scheme.primary,
+                    activeThumbColor: scheme.primary,
                   ),
                   onTap: () {
                     // Tapping the row toggles the switch globally
@@ -213,12 +213,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: const Icon(Icons.logout_rounded, size: 20),
               label: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFD9534F).withOpacity(0.1),
+                backgroundColor: const Color(0xFFD9534F).withValues(alpha: 0.1),
                 foregroundColor: const Color(0xFFD9534F),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                side: BorderSide(color: const Color(0xFFD9534F).withOpacity(0.3)),
+                side: BorderSide(color: const Color(0xFFD9534F).withValues(alpha: 0.3)),
               ),
             ),
           ),
@@ -241,7 +241,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Cancel', style: TextStyle(color: scheme.onSurface.withOpacity(0.6), fontWeight: FontWeight.w600)),
+            child: Text('Cancel', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), fontWeight: FontWeight.w600)),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -282,7 +282,7 @@ class _SettingsGroup extends StatelessWidget {
               fontSize: 12,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.5,
-              color: scheme.onSurface.withOpacity(0.4),
+              color: scheme.onSurface.withValues(alpha: 0.4),
             ),
           ),
         ),
@@ -290,9 +290,9 @@ class _SettingsGroup extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: scheme.outlineVariant.withOpacity(0.5)),
+            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
             ],
           ),
           child: Column(
@@ -301,7 +301,7 @@ class _SettingsGroup extends StatelessWidget {
                 children: [
                   children[index],
                   if (index < children.length - 1)
-                    Divider(height: 1, indent: 56, color: scheme.outlineVariant.withOpacity(0.5)),
+                    Divider(height: 1, indent: 56, color: scheme.outlineVariant.withValues(alpha: 0.5)),
                 ],
               );
             }),
@@ -344,10 +344,10 @@ class _SettingsTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest.withOpacity(0.3),
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, size: 20, color: scheme.onSurface.withOpacity(0.8)),
+                child: Icon(icon, size: 20, color: scheme.onSurface.withValues(alpha: 0.8)),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -359,7 +359,7 @@ class _SettingsTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
-                        style: TextStyle(color: scheme.onSurface.withOpacity(0.5), fontSize: 13),
+                        style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5), fontSize: 13),
                       ),
                     ],
                   ],
@@ -368,7 +368,7 @@ class _SettingsTile extends StatelessWidget {
               if (trailing != null) 
                 trailing!
               else if (showChevron)
-                Icon(Icons.chevron_right_rounded, color: scheme.onSurface.withOpacity(0.3)),
+                Icon(Icons.chevron_right_rounded, color: scheme.onSurface.withValues(alpha: 0.3)),
             ],
           ),
         ),

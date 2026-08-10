@@ -1,6 +1,9 @@
 // lib/features/admin/presentation/admin_dashboard_screen.dart
 
+import 'package:aeclms/features/admin/presentation/admin_all_loans_screen.dart';
 import 'package:aeclms/features/admin/presentation/report_generation_screen.dart';
+import 'package:aeclms/features/admin/presentation/user_management_screen.dart';
+import 'package:aeclms/main.dart';
 import 'package:flutter/material.dart';
 import '../../auth/data/auth_service.dart';
 
@@ -27,20 +30,20 @@ class AdminDashboardScreen extends StatelessWidget {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [scheme.primary, scheme.primary.withOpacity(0.8)],
+                colors: [scheme.primary, scheme.primary.withValues(alpha: 0.8)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
-                BoxShadow(color: scheme.primary.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8)),
+                BoxShadow(color: scheme.primary.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8)),
               ],
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: scheme.onPrimary.withOpacity(0.2), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: scheme.onPrimary.withValues(alpha: 0.2), shape: BoxShape.circle),
                   child: Icon(Icons.shield_rounded, size: 32, color: scheme.onPrimary),
                 ),
                 const SizedBox(width: 16),
@@ -48,7 +51,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Chairperson Access', style: TextStyle(color: scheme.onPrimary.withOpacity(0.8), fontWeight: FontWeight.w600, fontSize: 13, letterSpacing: 0.5)),
+                      Text('Chairperson Access', style: TextStyle(color: scheme.onPrimary.withValues(alpha: 0.8), fontWeight: FontWeight.w600, fontSize: 13, letterSpacing: 0.5)),
                       const SizedBox(height: 4),
                       Text('System Command', style: TextStyle(color: scheme.onPrimary, fontWeight: FontWeight.w800, fontSize: 24, letterSpacing: -0.5)),
                     ],
@@ -72,7 +75,9 @@ class AdminDashboardScreen extends StatelessWidget {
                   subtitle: 'Assign & manage',
                   color: const Color(0xFF4A90E2),
                   onTap: () {
-                    // Navigate to User Management
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const UserManagementScreen()),
+                    );
                   },
                 ),
               ),
@@ -84,7 +89,14 @@ class AdminDashboardScreen extends StatelessWidget {
                   subtitle: 'System overview',
                   color: const Color(0xFF58B982),
                   onTap: () {
-                    // Navigate to All Loans List
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AdminAllLoansScreen(
+                          profile: profile,
+                          repository: loanRepository,
+                        ),
+                      ),
+                    );
                   },
                 ),
               ),
@@ -137,9 +149,9 @@ class _AdminActionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: scheme.outlineVariant.withOpacity(0.5)),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 4)),
         ],
       ),
       child: Material(
@@ -154,7 +166,7 @@ class _AdminActionCard extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(16)),
                       child: Icon(icon, size: 32, color: color),
                     ),
                     const SizedBox(width: 20),
@@ -164,11 +176,11 @@ class _AdminActionCard extends StatelessWidget {
                         children: [
                           Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
                           const SizedBox(height: 4),
-                          Text(subtitle, style: TextStyle(color: scheme.onSurface.withOpacity(0.6), fontSize: 14)),
+                          Text(subtitle, style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), fontSize: 14)),
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right_rounded, color: scheme.onSurface.withOpacity(0.3)),
+                    Icon(Icons.chevron_right_rounded, color: scheme.onSurface.withValues(alpha: 0.3)),
                   ],
                 )
               : Column(
@@ -176,13 +188,13 @@ class _AdminActionCard extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                      decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
                       child: Icon(icon, size: 28, color: color),
                     ),
                     const SizedBox(height: 16),
                     Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                     const SizedBox(height: 4),
-                    Text(subtitle, style: TextStyle(color: scheme.onSurface.withOpacity(0.6), fontSize: 12)),
+                    Text(subtitle, style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
                   ],
                 ),
           ),
