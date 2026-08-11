@@ -57,7 +57,7 @@ class PushNotificationService {
   }
 
   Future<void> _setupForegroundNotifications() async {
-    const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@mipmap/launcher_icon');
     const DarwinInitializationSettings iosInit = DarwinInitializationSettings();
     
     const InitializationSettings initSettings = InitializationSettings(
@@ -96,7 +96,7 @@ class PushNotificationService {
               channel.id,
               channel.name,
               channelDescription: channel.description,
-              icon: '@mipmap/ic_launcher',
+              icon: '@mipmap/launcher_icon',
               priority: Priority.high,
               importance: Importance.max,
             ),

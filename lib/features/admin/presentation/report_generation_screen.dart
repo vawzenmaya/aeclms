@@ -1,5 +1,7 @@
 // lib/features/admin/presentation/report_generation_screen.dart
 
+// ignore_for_file: curly_braces_in_flow_control_structures
+
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';

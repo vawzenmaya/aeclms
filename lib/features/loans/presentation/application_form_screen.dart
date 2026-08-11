@@ -454,7 +454,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _StepHeader(title: 'Loan Classification', subtitle: 'Let\'s start with the basics.', icon: Icons.category_rounded),
+        const _StepHeader(title: 'Loan Product', subtitle: 'Let\'s start with the basics.', icon: Icons.category_rounded),
         
         Text('Category', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
         const SizedBox(height: 16),
@@ -462,7 +462,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           children: [
             Expanded(
               child: _SelectionCard(
-                title: 'Normal',
+                title: 'Long Term Loan',
                 subtitle: 'Standard timeline',
                 icon: Icons.calendar_month_rounded,
                 isSelected: _loanCategory == 'normal',
@@ -487,7 +487,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         
         const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider(height: 1)),
         
-        Text('Loan Type', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+        Text('Loan Application Type', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
         const SizedBox(height: 16),
         Row(
           children: [
@@ -514,7 +514,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
                       opacity: 0.3,
                       child: _SelectionCard(
                         title: 'Top-up',
-                        subtitle: 'Normal loans only',
+                        subtitle: 'Long Term Loans only',
                         icon: Icons.block_rounded,
                         isSelected: false,
                         onTap: () {},
@@ -572,7 +572,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
             _field(_phoneCtrl, 'Phone Number', icon: Icons.phone_outlined, keyboardType: TextInputType.phone, formatters: [FilteringTextInputFormatter.digitsOnly], validator: _required),
             _field(
               _employeeNumberCtrl,
-              _applicantCategory == 'member' ? 'Employee Number (AEC/...)' : 'ID / Reference Number',
+              _applicantCategory == 'member' ? 'Work ID (AEC/...)' : 'ID / Reference Number',
               icon: Icons.numbers_rounded,
               validator: _required,
             ),

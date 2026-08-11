@@ -71,19 +71,20 @@ export default {
 
     const payload = await req.json();
     const record = payload.record; // the newly inserted notifications row
+    console.log("Received notification row:", JSON.stringify(record));
 
-    if (!record?.user_id) {
-      return Response.json({ skipped: "no user_id on record" }, { status: 200 });
+    if (!record?.recipient_id) {
+      return Response.json({ skipped: "no recipient_id on record" }, { status: 200 });
     }
 
     const { data: profile, error } = await ctx.supabaseAdmin
       .from("profiles")
       .select("fcm_token")
-      .eq("id", record.user_id)
+      .eq("id", record.recipient_id)
       .single();
 
     if (error || !profile?.fcm_token) {
-      console.log(`No fcm_token for user ${record.user_id}, skipping push.`);
+      console.log(`No fcm_token for user ${record.recipient_id}, skipping push.`);
       return Response.json({ skipped: "no fcm_token" }, { status: 200 });
     }
 
