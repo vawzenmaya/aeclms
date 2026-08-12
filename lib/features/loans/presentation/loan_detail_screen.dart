@@ -640,7 +640,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 child: FilledButton(
                   onPressed: _acting ? null : () => _guarantorRespond(true),
                   style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: const Text('Confirm Support'),
+                  child: const Text('Confirm Guarantorship'),
                 ),
               ),
             ]),

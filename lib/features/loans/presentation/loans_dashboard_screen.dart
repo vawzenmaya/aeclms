@@ -190,7 +190,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
       ),
       appBar: AppBar(
         title: const Text(
-          'AEC Dashboard',
+          'Dashboard',
           style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5),
         ),
         centerTitle: true,
