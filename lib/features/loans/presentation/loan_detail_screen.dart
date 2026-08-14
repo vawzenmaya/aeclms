@@ -3,6 +3,7 @@
 import 'package:aeclms/core/widgets/custom_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart'; 
 
 import '../../auth/data/auth_service.dart';
 import '../../documents/data/documents_repository.dart';
@@ -33,6 +34,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
   Map<String, dynamic>? _loan;
   Map<String, dynamic>? _currentStage;
   List<Map<String, dynamic>> _allStages = [];
+  List<Map<String, dynamic>> _stageActions = []; 
   bool _loading = true;
   bool _acting = false;
   String? _error;
@@ -45,19 +47,32 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final loan = await widget.repository.fetchLoan(widget.loanId);
-    Map<String, dynamic>? currentStage;
-    if (loan['status'] == 'in_review') {
-      currentStage = await widget.repository.fetchCurrentStage(loan);
+    
+    try {
+      final loan = await widget.repository.fetchLoan(widget.loanId);
+      Map<String, dynamic>? currentStage;
+      if (loan['status'] == 'in_review') {
+        currentStage = await widget.repository.fetchCurrentStage(loan);
+      }
+      final stages = await widget.repository.fetchAllStages(loan['template_id'] as String);
+      final actions = await widget.repository.fetchStageActions(widget.loanId); 
+
+      if (!mounted) return;
+      setState(() {
+        _loan = loan;
+        _currentStage = currentStage;
+        _allStages = stages;
+        _stageActions = actions;
+        _loading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load loan details: $e';
+          _loading = false;
+        });
+      }
     }
-    final stages = await widget.repository.fetchAllStages(loan['template_id'] as String);
-    if (!mounted) return;
-    setState(() {
-      _loan = loan;
-      _currentStage = currentStage;
-      _allStages = stages;
-      _loading = false;
-    });
   }
 
   bool get _isGuarantorPending =>
@@ -85,8 +100,9 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
   Future<void> _guarantorRespond(bool confirm) async {
     String? comment;
     if (!confirm) {
-      comment = await _promptForComment('Why are you declining to guarantee this loan?');
-      if (comment == null || comment.trim().isEmpty) return;
+      final result = await _showActionSignatureSheet('Decline Guarantorship', isReject: true);
+      if (result == null || result['comment'].trim().isEmpty) return;
+      comment = result['comment'];
     }
     setState(() => _acting = true);
     try {
@@ -100,32 +116,16 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
   }
 
   Future<void> _act(String action) async {
-    String? comment;
-    DateTime? firstDeductionDate;
+    final isApproval = action == 'approved';
+    final isDisbursement = isApproval && _currentStage!['is_disbursement_stage'] == true;
+    
+    final result = await _showActionSignatureSheet(
+      isApproval ? (isDisbursement ? 'Disburse Loan' : 'Approve Stage') : 'Reject Application',
+      isReject: !isApproval,
+      isDisbursement: isDisbursement,
+    );
 
-    if (action == 'rejected') {
-      comment = await _promptForComment('Reason for rejecting (required)');
-      if (comment == null || comment.trim().isEmpty) return;
-    } else if (action == 'approved' && _currentStage!['is_disbursement_stage'] == true) {
-      firstDeductionDate = await showDatePicker(
-        context: context,
-        initialDate: DateTime.now().add(const Duration(days: 30)),
-        firstDate: DateTime.now(),
-        lastDate: DateTime.now().add(const Duration(days: 366)),
-        helpText: 'Select First Deduction Date',
-        builder: (context, child) {
-          return Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: Theme.of(context).colorScheme.copyWith(
-                    surface: Theme.of(context).colorScheme.surface,
-                  ),
-            ),
-            child: child!,
-          );
-        },
-      );
-      if (firstDeductionDate == null) return;
-    }
+    if (result == null) return; 
 
     setState(() => _acting = true);
     try {
@@ -134,8 +134,10 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         stageId: _currentStage!['id'] as String,
         actorId: widget.profile.id,
         action: action,
-        comment: comment,
-        firstDeductionDate: firstDeductionDate,
+        comment: result['comment'],
+        firstDeductionDate: result['date'],
+        disbursementMode: result['disbursementMode'], // Passed to repository
+        chequeNumber: result['chequeNumber'],         // Passed to repository
       );
       await _load();
     } on PostgrestException catch (e) {
@@ -145,34 +147,178 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     }
   }
 
-  Future<String?> _promptForComment(String title) async {
+  Future<Map<String, dynamic>?> _showActionSignatureSheet(String title, {bool isReject = false, bool isDisbursement = false}) async {
     final ctrl = TextEditingController();
-    return showDialog<String>(
+    final chequeCtrl = TextEditingController();
+    DateTime? selectedDate = isDisbursement ? DateTime.now().add(const Duration(days: 30)) : null;
+    String? disbursementMode;
+    bool isSubmitEnabled = false;
+
+    return showModalBottomSheet<Map<String, dynamic>>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-        content: TextField(
-          controller: ctrl,
-          maxLines: 3,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: 'Enter your reason here...',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, ctrl.text),
-            style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            child: const Text('Confirm'),
-          ),
-        ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final scheme = Theme.of(context).colorScheme;
+          final buttonColor = isReject ? const Color(0xFFD9534F) : scheme.primary;
+
+          void validate() {
+             bool valid = ctrl.text.trim().isNotEmpty;
+             if (isDisbursement && !isReject) {
+                 if (disbursementMode == null) valid = false;
+                 if (disbursementMode == 'Cheque' && chequeCtrl.text.trim().isEmpty) valid = false;
+             }
+             setSheetState(() => isSubmitEnabled = valid);
+          }
+
+          return Container(
+            padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+            decoration: BoxDecoration(
+              color: scheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(width: 40, height: 4, decoration: BoxDecoration(color: scheme.outlineVariant, borderRadius: BorderRadius.circular(2))),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: buttonColor.withValues(alpha: 0.15), shape: BoxShape.circle),
+                        child: Icon(isReject ? Icons.cancel_outlined : Icons.draw_rounded, color: buttonColor),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text('Action Signature', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: scheme.onSurface))),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'A mandatory remark is required to officially sign off. This comment will be permanently visible on the loan tracker.',
+                    style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), height: 1.4),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  TextField(
+                    controller: ctrl,
+                    maxLines: 4,
+                    textCapitalization: TextCapitalization.sentences,
+                    onChanged: (val) => validate(),
+                    decoration: InputDecoration(
+                      hintText: isReject ? 'State the detailed reason for rejection...' : 'Enter your approval remarks...',
+                      filled: true,
+                      fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: buttonColor, width: 2)),
+                    ),
+                  ),
+
+                  // DISBURSEMENT SETTINGS (Only shown if final stage & approving)
+                  if (isDisbursement && !isReject) ...[
+                    const SizedBox(height: 32),
+                    Text('Disbursement Details', style: TextStyle(fontWeight: FontWeight.w800, color: scheme.primary)),
+                    const SizedBox(height: 16),
+                    
+                    Text('First Deduction Date', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 13)),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate!,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(const Duration(days: 366)),
+                        );
+                        if (picked != null) {
+                          setSheetState(() => selectedDate = picked);
+                          validate();
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_month_rounded, color: scheme.primary, size: 20),
+                            const SizedBox(width: 12),
+                            Text(DateFormat('MMMM dd, yyyy').format(selectedDate!), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    Text('Mode of Disbursement', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 13)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: disbursementMode,
+                      hint: const Text('Select Mode'),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      ),
+                      items: ['RTGS', 'EFT', 'Cheque'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                      onChanged: (val) {
+                        setSheetState(() => disbursementMode = val);
+                        validate();
+                      },
+                    ),
+
+                    if (disbursementMode == 'Cheque') ...[
+                      const SizedBox(height: 16),
+                      Text('Cheque Number', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 13)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: chequeCtrl,
+                        onChanged: (val) => validate(),
+                        decoration: InputDecoration(
+                          hintText: 'Enter Cheque Number...',
+                          filled: true,
+                          fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        ),
+                      ),
+                    ],
+                  ],
+
+                  const SizedBox(height: 32),
+                  
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: isSubmitEnabled 
+                        ? () => Navigator.pop(context, {
+                            'comment': ctrl.text.trim(), 
+                            'date': selectedDate,
+                            'disbursementMode': disbursementMode,
+                            'chequeNumber': chequeCtrl.text.trim(),
+                          }) 
+                        : null,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: buttonColor,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -449,18 +595,13 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
   Widget _buildTimeline(BuildContext context, Map<String, dynamic> loan) {
     final scheme = Theme.of(context).colorScheme;
-
-    // 1. Force the list to sort ascending (Top to Bottom visual flow)
     final sortedStages = List<Map<String, dynamic>>.from(_allStages)
       ..sort((a, b) => (a['stage_order'] as int).compareTo(b['stage_order'] as int));
 
-    // 2. Expanded the success array to catch ALL possible final database states
     final dbStatus = (loan['status'] as String? ?? 'draft').toLowerCase();
-    
     final maxStageOrder = sortedStages.isNotEmpty ? sortedStages.last['stage_order'] as int : -1;
     final currentStageOrder = loan['current_stage_order'] as int? ?? 0;
     
-    // A loan is fully approved if it has a completion status, OR if the current stage has incremented past the final available stage
     final isFullyApproved = ['approved', 'active', 'cleared', 'disbursed', 'completed'].contains(dbStatus) || 
                             (currentStageOrder > maxStageOrder && dbStatus != 'rejected' && dbStatus != 'returned_to_applicant' && dbStatus != 'draft');
 
@@ -476,24 +617,18 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         children: List.generate(sortedStages.length, (index) {
           final s = sortedStages[index];
           final stageOrder = s['stage_order'] as int;
-
-          // Highlight the node if it's currently active
           final isCurrent = dbStatus == 'in_review' && stageOrder == currentStageOrder;
           
-          // 3. Mark as checked if fully disbursed, OR if it's an earlier stage
           final isPast = isFullyApproved || (
               dbStatus != 'draft' &&
               dbStatus != 'awaiting_guarantor' &&
               stageOrder < currentStageOrder
           );
-
+          
           final isLast = index == sortedStages.length - 1;
+          IconData pastIcon = (isLast && isPast) ? Icons.sports_score_rounded : Icons.check;
 
-          // Use the standard checkmark, unless it's the final stage and the loan is fully approved
-          IconData pastIcon = Icons.check;
-          if (isLast && isPast) {
-            pastIcon = Icons.sports_score_rounded; // Checkered finish flag
-          }
+          final matchingAction = _stageActions.where((a) => a['stage_id'] == s['id']).lastOrNull;
 
           return IntrinsicHeight(
             child: Row(
@@ -502,7 +637,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 Column(
                   children: [
                     Container(
-                      width: 28, // Scaled up slightly for the flag icon
+                      width: 28,
                       height: 28,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
@@ -544,6 +679,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                             color: isCurrent ? scheme.primary : (isPast ? scheme.onSurface : scheme.onSurface.withValues(alpha: 0.5)),
                           ),
                         ),
+                        
                         if (isCurrent)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
@@ -552,12 +688,77 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                               style: TextStyle(fontSize: 12, color: scheme.primary.withValues(alpha: 0.8)),
                             ),
                           ),
-                        if (isLast && isFullyApproved)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              'Loan Disbursed',
-                              style: TextStyle(fontSize: 12, color: scheme.primary, fontWeight: FontWeight.w600),
+                          
+                        if (matchingAction != null)
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: matchingAction['action'] == 'rejected' 
+                                  ? const Color(0xFFD9534F).withValues(alpha: 0.1) 
+                                  : scheme.primary.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: matchingAction['action'] == 'rejected' 
+                                    ? const Color(0xFFD9534F).withValues(alpha: 0.3) 
+                                    : scheme.primary.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        matchingAction['profiles']?['full_name'] ?? 'Authorized Approver',
+                                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: scheme.onSurface),
+                                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Text(
+                                      matchingAction['created_at'] != null 
+                                          ? DateFormat('MMM d, yyyy').format(DateTime.parse(matchingAction['created_at']))
+                                          : '',
+                                      style: TextStyle(fontSize: 11, color: scheme.onSurface.withValues(alpha: 0.5)),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  matchingAction['comment'] as String? ?? 'No remark provided.',
+                                  style: TextStyle(
+                                    fontSize: 13, 
+                                    color: scheme.onSurface.withValues(alpha: 0.8), 
+                                    fontStyle: FontStyle.italic,
+                                    height: 1.4,
+                                  ),
+                                ),
+                                
+                                // NEW: SHOW DISBURSEMENT DETAILS IF AVAILABLE
+                                if (matchingAction['disbursement_mode'] != null)
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 8),
+                                    padding: const EdgeInsets.only(top: 8),
+                                    decoration: BoxDecoration(
+                                      border: Border(top: BorderSide(color: scheme.primary.withValues(alpha: 0.2))),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.payments_rounded, size: 14, color: scheme.primary),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            'Paid via ${matchingAction['disbursement_mode']}' + 
+                                            (matchingAction['cheque_number'] != null ? ' (Chq: ${matchingAction['cheque_number']})' : ''),
+                                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: scheme.primary),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                       ],
@@ -706,7 +907,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 child: FilledButton(
                   onPressed: _acting ? null : () => _act('approved'),
                   style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: Text(_currentStage!['is_disbursement_stage'] == true ? 'Approve & Disburse' : 'Approve'),
+                  child: Text(_currentStage!['is_disbursement_stage'] == true ? 'Disburse Loan' : 'Approve Stage'),
                 ),
               ),
             ]),
@@ -849,7 +1050,6 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-/// A lightweight wrapper to provide a staggered fade & slide entrance animation.
 class _StaggeredFadeIn extends StatefulWidget {
   final Widget child;
   final int index;

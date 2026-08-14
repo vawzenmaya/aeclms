@@ -249,6 +249,8 @@ class LoanRepository {
     required String action, // 'approved' | 'rejected'
     String? comment,
     DateTime? firstDeductionDate,
+    String? disbursementMode, // NEW
+    String? chequeNumber,     // NEW
   }) async {
     await _client.from('loan_stage_actions').insert({
       'loan_id': loanId,
@@ -258,6 +260,8 @@ class LoanRepository {
       'comment': comment,
       if (firstDeductionDate != null)
         'first_deduction_date': firstDeductionDate.toIso8601String().split('T').first,
+      if (disbursementMode != null) 'disbursement_mode': disbursementMode,
+      if (chequeNumber != null && chequeNumber.trim().isNotEmpty) 'cheque_number': chequeNumber,
     });
   }
 }
