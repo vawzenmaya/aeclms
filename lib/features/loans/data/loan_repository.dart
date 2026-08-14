@@ -55,6 +55,16 @@ class LoanRepository {
     return rows.first['id'] as String;
   }
 
+  /// Fetches all historical actions/comments made on a specific loan
+  Future<List<Map<String, dynamic>>> fetchStageActions(String loanId) async {
+    final rows = await _client
+        .from('loan_stage_actions')
+        .select('*, profiles(full_name)')
+        .eq('loan_id', loanId)
+        .order('created_at', ascending: true);
+    return List<Map<String, dynamic>>.from(rows);
+  }
+
   /// Creates the loan row as a draft (or updates it if [existingLoanId] is given).
   /// Returns the loan id. The database computes installment/fee/DTI server-side —
   /// call [fetchLoan] after this if you need the authoritative computed values.
@@ -109,7 +119,7 @@ class LoanRepository {
       'bank_sort_code': bankSortCode,
       'bank_swift_code': bankSwiftCode,
       'bank_details_confirmed': bankDetailsConfirmed,
-      'parent_loan_id': ?parentLoanId,
+      'parent_loan_id': parentLoanId,
     };
 
     if (existingLoanId != null) {

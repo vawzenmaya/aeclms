@@ -454,9 +454,15 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     final sortedStages = List<Map<String, dynamic>>.from(_allStages)
       ..sort((a, b) => (a['stage_order'] as int).compareTo(b['stage_order'] as int));
 
-    // 2. Determine if the overall loan has completely finished the pipeline
-    final dbStatus = loan['status'] as String? ?? 'draft';
-    final isFullyApproved = dbStatus == 'approved' || dbStatus == 'active' || dbStatus == 'cleared';
+    // 2. Expanded the success array to catch ALL possible final database states
+    final dbStatus = (loan['status'] as String? ?? 'draft').toLowerCase();
+    
+    final maxStageOrder = sortedStages.isNotEmpty ? sortedStages.last['stage_order'] as int : -1;
+    final currentStageOrder = loan['current_stage_order'] as int? ?? 0;
+    
+    // A loan is fully approved if it has a completion status, OR if the current stage has incremented past the final available stage
+    final isFullyApproved = ['approved', 'active', 'cleared', 'disbursed', 'completed'].contains(dbStatus) || 
+                            (currentStageOrder > maxStageOrder && dbStatus != 'rejected' && dbStatus != 'returned_to_applicant' && dbStatus != 'draft');
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -470,7 +476,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         children: List.generate(sortedStages.length, (index) {
           final s = sortedStages[index];
           final stageOrder = s['stage_order'] as int;
-          final currentStageOrder = loan['current_stage_order'] as int? ?? 0;
 
           // Highlight the node if it's currently active
           final isCurrent = dbStatus == 'in_review' && stageOrder == currentStageOrder;
