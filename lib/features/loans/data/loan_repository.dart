@@ -59,7 +59,8 @@ class LoanRepository {
   Future<List<Map<String, dynamic>>> fetchStageActions(String loanId) async {
     final rows = await _client
         .from('loan_stage_actions')
-        .select('*, profiles(full_name)')
+        // We use !actor_id to explicitly tell Supabase which relationship to follow
+        .select('*, profiles!actor_id(full_name)')
         .eq('loan_id', loanId)
         .order('created_at', ascending: true);
     return List<Map<String, dynamic>>.from(rows);
@@ -82,8 +83,13 @@ class LoanRepository {
     required double amountRequested,
     required String amountInWords,
     required String purpose,
+    // NEW COLLATERAL FIELD
+    double? savingsBalance,
     String? securityDescription,
     double? securityEstimatedValue,
+    // NEW DURATION FIELDS
+    required int durationMonths,
+    required DateTime initialRepaymentDate,
     required DateTime expectedEndDate,
     required double netPay,
     String? guarantorId,
@@ -108,8 +114,11 @@ class LoanRepository {
       'amount_requested': amountRequested,
       'amount_in_words': amountInWords,
       'purpose': purpose,
+      'savings_balance': savingsBalance, // NEW
       'security_description': securityDescription,
       'security_estimated_value': securityEstimatedValue,
+      'duration_months': durationMonths, // NEW
+      'initial_repayment_date': initialRepaymentDate.toIso8601String().split('T').first, // NEW
       'expected_end_date': expectedEndDate.toIso8601String().split('T').first,
       'net_pay': netPay,
       'guarantor_id': guarantorId,
@@ -119,7 +128,7 @@ class LoanRepository {
       'bank_sort_code': bankSortCode,
       'bank_swift_code': bankSwiftCode,
       'bank_details_confirmed': bankDetailsConfirmed,
-      'parent_loan_id': parentLoanId,
+      if (parentLoanId != null) 'parent_loan_id': parentLoanId,
     };
 
     if (existingLoanId != null) {

@@ -1,6 +1,7 @@
 // lib/features/loans/presentation/loan_detail_screen.dart
 
 import 'package:aeclms/core/widgets/custom_loader.dart';
+import 'package:aeclms/features/loans/utils/loan_form_pdf_service.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart'; 
@@ -46,16 +47,29 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     
     try {
+      // 1. Fetch core loan data first
       final loan = await widget.repository.fetchLoan(widget.loanId);
+      
       Map<String, dynamic>? currentStage;
       if (loan['status'] == 'in_review') {
         currentStage = await widget.repository.fetchCurrentStage(loan);
       }
+      
       final stages = await widget.repository.fetchAllStages(loan['template_id'] as String);
-      final actions = await widget.repository.fetchStageActions(widget.loanId); 
+      
+      // 2. Safely fetch actions in an isolated block so it doesn't crash the screen if it fails
+      List<Map<String, dynamic>> actions = [];
+      try {
+        actions = await widget.repository.fetchStageActions(widget.loanId); 
+      } catch (e) {
+        debugPrint('Warning: Could not fetch stage comments: $e');
+      }
 
       if (!mounted) return;
       setState(() {
@@ -136,8 +150,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         action: action,
         comment: result['comment'],
         firstDeductionDate: result['date'],
-        disbursementMode: result['disbursementMode'], // Passed to repository
-        chequeNumber: result['chequeNumber'],         // Passed to repository
+        disbursementMode: result['disbursementMode'], 
+        chequeNumber: result['chequeNumber'],         
       );
       await _load();
     } on PostgrestException catch (e) {
@@ -219,7 +233,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                     ),
                   ),
 
-                  // DISBURSEMENT SETTINGS (Only shown if final stage & approving)
+                  // DISBURSEMENT SETTINGS
                   if (isDisbursement && !isReject) ...[
                     const SizedBox(height: 32),
                     Text('Disbursement Details', style: TextStyle(fontWeight: FontWeight.w800, color: scheme.primary)),
@@ -329,8 +343,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         (_loan!['status'] == 'draft' || _loan!['status'] == 'returned_to_applicant');
   }
 
-  void _editApplication() {
-    Navigator.of(context).pushReplacement(
+  Future<void> _editApplication() async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ApplicationFormScreen(
           repository: widget.repository,
@@ -340,10 +354,12 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         ),
       ),
     );
+    _load(); // Refreshes the details when you return
   }
 
-  void _goToDocumentUpload() {
-    Navigator.of(context).pushReplacement(
+  Future<void> _goToDocumentUpload() async {
+    // Changed from pushReplacement to push, and added await
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => DocumentUploadScreen(
           loanRepository: widget.repository,
@@ -353,12 +369,43 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         ),
       ),
     );
+    _load(); // Refreshes the details when you return
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading || _loan == null) {
+    if (_loading) {
       return Scaffold(body: Center(child: CustomLoader(size: 56, color: Theme.of(context).colorScheme.primary)));
+    }
+    if (_error != null || _loan == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Error', style: TextStyle(fontWeight: FontWeight.w600)),
+          leading: const BackButton(),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Color(0xFFD9534F), size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  _error ?? 'An unknown error occurred while loading this loan.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Color(0xFFD9534F), fontSize: 16),
+                ),
+                const SizedBox(height: 24),
+                FilledButton.tonal(
+                  onPressed: _load,
+                  child: const Text('Try Again'),
+                )
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     return FutureBuilder<void>(
@@ -367,12 +414,13 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         if (snapshot.connectionState != ConnectionState.done) {
           return Scaffold(body: Center(child: CustomLoader(size: 56, color: Theme.of(context).colorScheme.primary)));
         }
-        return _buildLoaded(context);
+        return _buildLoaded(context); // This safely passes the data to your print buttons below!
       },
     );
   }
 
   Widget _buildLoaded(BuildContext context) {
+    // Here is where 'loan' is safely defined for the whole screen!
     final loan = _loan!;
     final scheme = Theme.of(context).colorScheme;
 
@@ -388,6 +436,27 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
         ),
         centerTitle: true,
+        actions: [
+          // Print Initial Application Form
+          IconButton(
+            icon: const Icon(Icons.print_outlined),
+            tooltip: 'Print Application Form',
+            onPressed: () => LoanFormPdfService.generateInitialApplicationForm(loan: loan),
+          ),
+          
+          // Print Final Executed Form (Visible if approved/disbursed)
+          if (['approved', 'active', 'cleared', 'disbursed', 'completed'].contains((loan['status'] as String? ?? '').toLowerCase()))
+            IconButton(
+              icon: const Icon(Icons.verified_rounded, color: Colors.green),
+              tooltip: 'Print Final Execution Certificate',
+              onPressed: () => LoanFormPdfService.generateFinalExecutionForm(
+                loan: loan,
+                stages: _allStages,
+                actions: _stageActions,
+              ),
+            ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [
@@ -736,7 +805,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                                   ),
                                 ),
                                 
-                                // NEW: SHOW DISBURSEMENT DETAILS IF AVAILABLE
                                 if (matchingAction['disbursement_mode'] != null)
                                   Container(
                                     margin: const EdgeInsets.only(top: 8),
