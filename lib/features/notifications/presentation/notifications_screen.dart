@@ -91,6 +91,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return '${diff.inDays}d ago';
   }
 
+  Widget _buildSwipeBackground(BuildContext context, Alignment alignment) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFD9534F),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 32),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -175,10 +187,38 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       final n = _notifications[i];
                       return _StaggeredFadeIn(
                         index: i,
-                        child: _NotificationCard(
-                          notification: n,
-                          timeAgo: _timeAgo(n.createdAt),
-                          onTap: () => _openNotification(n),
+                        // ADDED: Padding around Dismissible (instead of margins in the card) for clean swiping
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Dismissible(
+                            key: ValueKey(n.id),
+                            direction: DismissDirection.horizontal,
+                            background: _buildSwipeBackground(context, Alignment.centerLeft),
+                            secondaryBackground: _buildSwipeBackground(context, Alignment.centerRight),
+                            onDismissed: (direction) async {
+                              // Optimistically remove from UI
+                              setState(() {
+                                _notifications.removeAt(i);
+                              });
+                              
+                              try {
+                                await widget.repository.delete(n.id);
+                              } catch (e) {
+                                // Restore if backend deletion fails
+                                _load();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Failed to delete notification')),
+                                  );
+                                }
+                              }
+                            },
+                            child: _NotificationCard(
+                              notification: n,
+                              timeAgo: _timeAgo(n.createdAt),
+                              onTap: () => _openNotification(n),
+                            ),
+                          ),
                         ),
                       );
                     },
@@ -226,7 +266,6 @@ class _NotificationCard extends StatelessWidget {
     final iconColor = isRead ? scheme.onSurface.withValues(alpha: 0.4) : design.$2;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: isRead ? Theme.of(context).cardTheme.color : scheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),

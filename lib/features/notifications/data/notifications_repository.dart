@@ -54,4 +54,8 @@ class NotificationsRepository {
   Future<void> markAllRead() async {
     await _client.from('notifications').update({'is_read': true}).eq('is_read', false);
   }
+
+  Future<void> delete(String id) async {
+    await _client.from('notifications').delete().eq('id', id);
+  }
 }

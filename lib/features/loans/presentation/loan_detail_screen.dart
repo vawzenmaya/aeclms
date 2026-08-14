@@ -183,9 +183,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         (_loan!['status'] == 'draft' || _loan!['status'] == 'returned_to_applicant');
   }
 
-  /// Edits this draft. Uses pushReplacement (not push) so the whole chain --
-  /// edit form -> documents -> back to a fresh detail screen -- replaces this
-  /// screen cleanly instead of leaving a stale copy underneath in the stack.
   void _editApplication() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
@@ -199,9 +196,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     );
   }
 
-  /// Submission always goes through the dedicated Documents screen -- a loan
-  /// can't be submitted without at least one uploaded document, so that
-  /// screen is where the actual submit action (and its validation) lives.
   void _goToDocumentUpload() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
@@ -456,6 +450,14 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
   Widget _buildTimeline(BuildContext context, Map<String, dynamic> loan) {
     final scheme = Theme.of(context).colorScheme;
 
+    // 1. Force the list to sort ascending (Top to Bottom visual flow)
+    final sortedStages = List<Map<String, dynamic>>.from(_allStages)
+      ..sort((a, b) => (a['stage_order'] as int).compareTo(b['stage_order'] as int));
+
+    // 2. Determine if the overall loan has completely finished the pipeline
+    final dbStatus = loan['status'] as String? ?? 'draft';
+    final isFullyApproved = dbStatus == 'approved' || dbStatus == 'active' || dbStatus == 'cleared';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -465,13 +467,28 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: List.generate(_allStages.length, (index) {
-          final s = _allStages[index];
-          final isCurrent = loan['status'] == 'in_review' && s['stage_order'] == loan['current_stage_order'];
-          final isPast = loan['status'] != 'draft' &&
-              loan['status'] != 'awaiting_guarantor' &&
-              (s['stage_order'] as int) < (loan['current_stage_order'] as int);
-          final isLast = index == _allStages.length - 1;
+        children: List.generate(sortedStages.length, (index) {
+          final s = sortedStages[index];
+          final stageOrder = s['stage_order'] as int;
+          final currentStageOrder = loan['current_stage_order'] as int? ?? 0;
+
+          // Highlight the node if it's currently active
+          final isCurrent = dbStatus == 'in_review' && stageOrder == currentStageOrder;
+          
+          // 3. Mark as checked if fully disbursed, OR if it's an earlier stage
+          final isPast = isFullyApproved || (
+              dbStatus != 'draft' &&
+              dbStatus != 'awaiting_guarantor' &&
+              stageOrder < currentStageOrder
+          );
+
+          final isLast = index == sortedStages.length - 1;
+
+          // Use the standard checkmark, unless it's the final stage and the loan is fully approved
+          IconData pastIcon = Icons.check;
+          if (isLast && isPast) {
+            pastIcon = Icons.sports_score_rounded; // Checkered finish flag
+          }
 
           return IntrinsicHeight(
             child: Row(
@@ -480,8 +497,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 Column(
                   children: [
                     Container(
-                      width: 24,
-                      height: 24,
+                      width: 28, // Scaled up slightly for the flag icon
+                      height: 28,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isCurrent
@@ -495,7 +512,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                       child: Center(
                         child: isCurrent
                             ? Container(width: 10, height: 10, decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle))
-                            : (isPast ? Icon(Icons.check, size: 14, color: scheme.onPrimary) : null),
+                            : (isPast ? Icon(pastIcon, size: 16, color: scheme.onPrimary) : null),
                       ),
                     ),
                     if (!isLast)
@@ -528,6 +545,14 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                             child: Text(
                               'Waiting for review',
                               style: TextStyle(fontSize: 12, color: scheme.primary.withValues(alpha: 0.8)),
+                            ),
+                          ),
+                        if (isLast && isFullyApproved)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Loan Disbursed',
+                              style: TextStyle(fontSize: 12, color: scheme.primary, fontWeight: FontWeight.w600),
                             ),
                           ),
                       ],
