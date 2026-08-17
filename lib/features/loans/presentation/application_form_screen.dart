@@ -349,11 +349,18 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loadingContext) {
-      return Scaffold(body: Center(child: CustomLoader(size: 56, color: Theme.of(context).colorScheme.primary)));
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: Center(child: CustomLoader(size: 56, color: Theme.of(context).colorScheme.primary))
+      );
     }
 
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        surfaceTintColor: Colors.transparent,
         leading: _currentStep > 0 ? IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: _prevStep) : const BackButton(),
         title: Text(_isEditingDraft ? 'Edit Application' : 'New Application', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
         actions: [TextButton(onPressed: _saving ? null : _handleSave, child: const Text('Save Draft')), const SizedBox(width: 8)],
@@ -422,14 +429,14 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           children: [
             Expanded(
               child: _SelectionCard(
-                title: 'Long Term Loan', subtitle: 'Standard timeline', icon: Icons.calendar_month_rounded,
+                title: 'Long Term Loan', subtitle: ' ', icon: Icons.calendar_month_rounded,
                 isSelected: _loanCategory == 'normal', onTap: () => setState(() => _loanCategory = 'normal'),
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _SelectionCard(
-                title: 'Emergency', subtitle: 'Quick flat rate', icon: Icons.bolt_rounded,
+                title: 'Emergency', subtitle: '', icon: Icons.bolt_rounded,
                 isSelected: _loanCategory == 'emergency', onTap: () => setState(() { _loanCategory = 'emergency'; _loanType = 'new'; }),
               ),
             ),
@@ -461,14 +468,14 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           children: [
             Expanded(
               child: _SelectionCard(
-                title: 'Member', subtitle: 'Registered AEC', icon: Icons.verified_user_rounded,
+                title: 'Member', subtitle: ' ', icon: Icons.verified_user_rounded,
                 isSelected: _applicantCategory == 'member', onTap: () => setState(() { _applicantCategory = 'member'; _employeeNumberCtrl.text = widget.profile.employeeNumber ?? ''; }),
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _SelectionCard(
-                title: 'Non-Member', subtitle: 'External entity', icon: Icons.person_outline_rounded,
+                title: 'Non-Member', subtitle: ' ', icon: Icons.person_outline_rounded,
                 isSelected: _applicantCategory == 'non_member', onTap: () => setState(() => _applicantCategory = 'non_member'),
               ),
             ),
@@ -508,13 +515,20 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
               padding: const EdgeInsets.only(bottom: 20),
               child: DropdownButtonFormField<String>(
                 initialValue: _bankName,
+                // FIX: Force the dropdown menu background to be light
+                dropdownColor: Theme.of(context).colorScheme.surface, 
                 decoration: InputDecoration(
                   labelText: 'Bank Name',
                   prefixIcon: Icon(Icons.account_balance_outlined, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                   filled: true,
+                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 ),
-                items: _ugandanBanks.map((bank) => DropdownMenuItem(value: bank, child: Text(bank, style: const TextStyle(fontWeight: FontWeight.w500)))).toList(),
+                items: _ugandanBanks.map((bank) => DropdownMenuItem(
+                  value: bank, 
+                  // FIX: Force the text to be readable (onSurface)
+                  child: Text(bank, style: TextStyle(fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurface))
+                )).toList(),
                 onChanged: (v) => setState(() { _bankName = v; _error = null; }),
                 validator: (v) => v == null ? 'Please select your bank' : null,
               ),
@@ -631,13 +645,20 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           _card([
             DropdownButtonFormField<String>(
               initialValue: _guarantorId,
+              // FIX: Force the dropdown menu background to be light
+              dropdownColor: Theme.of(context).colorScheme.surface,
               decoration: InputDecoration(
                 labelText: 'Mandatory Guarantor',
                 prefixIcon: const Icon(Icons.group_add_outlined),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                 filled: true,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
               ),
-              items: _guarantors.map((g) => DropdownMenuItem(value: g.id, child: Text(g.fullName))).toList(),
+              items: _guarantors.map((g) => DropdownMenuItem(
+                value: g.id, 
+                // FIX: Force the text to be readable
+                child: Text(g.fullName, style: TextStyle(color: Theme.of(context).colorScheme.onSurface))
+              )).toList(),
               onChanged: (v) => setState(() { _guarantorId = v; _error = null; }),
               validator: (v) => v == null ? 'A community guarantor is required' : null,
             ),
@@ -724,7 +745,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   Widget _card(List<Widget> children) => Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5), width: 1),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8))],
@@ -741,7 +762,16 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       child: TextFormField(
         controller: ctrl, keyboardType: keyboardType, inputFormatters: formatters, maxLines: maxLines, maxLength: maxLength, textAlign: textAlign, readOnly: readOnly, validator: validator,
         style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: readOnly ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5) : Theme.of(context).colorScheme.onSurface),
-        decoration: InputDecoration(labelText: label, prefixIcon: icon != null ? Icon(icon, size: 22, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)) : null, alignLabelWithHint: maxLines > 1),
+        decoration: InputDecoration(
+          labelText: label, 
+          prefixIcon: icon != null ? Icon(icon, size: 22, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)) : null, 
+          alignLabelWithHint: maxLines > 1,
+          // FIX: Explicitly forcing the background color of the input field
+          filled: true,
+          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)),
+        ),
       ),
     );
   }
@@ -813,7 +843,14 @@ class _DatePickerField extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: InputDecorator(
-          decoration: InputDecoration(labelText: label, prefixIcon: Icon(Icons.calendar_month_outlined, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))),
+          decoration: InputDecoration(
+            labelText: label, 
+            prefixIcon: Icon(Icons.calendar_month_outlined, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+            // FIX: Added background color to match the text fields
+            filled: true,
+            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+          ),
           child: Text(text, style: TextStyle(fontSize: 15, fontWeight: value == null ? FontWeight.w400 : FontWeight.w500, color: value == null ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5) : Theme.of(context).colorScheme.onSurface)),
         ),
       ),
@@ -860,7 +897,7 @@ class _PremiumRepaymentSummary extends StatelessWidget {
                 _SummaryRow('Estimated Interest', '+ UGX ${format(interestAmount)}'), const SizedBox(height: 16),
                 _SummaryRow('Processing Fee', 'UGX ${format(preview.processingFee)}', isSub: true),
                 const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1)),
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Total Repayment', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)), Text('UGX ${format(totalRepayment)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18))]),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Total Loan Amount', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)), Text('UGX ${format(totalRepayment)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18))]),
               ],
             ),
           ),

@@ -11,6 +11,8 @@ const _docTypes = {
   'id_copy': 'ID Copy',
   'valid_contract': 'Valid Contract',
   'payslip': 'Most Recent Payslip',
+  'applicant_signed_declaration': 'Applicant Signed Declaration',
+  'guarantor_signed_declaration': 'Guarantor Signed Declaration',
   'other': 'Other Document',
 };
 

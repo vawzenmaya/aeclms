@@ -24,7 +24,7 @@ class LoanFormPdfService {
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text('AEC SACCO', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.green900)),
+                  pw.Text('AEC LMS', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.green900)),
                   pw.SizedBox(height: 4),
                   pw.Text('LOAN APPLICATION FORM', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
                 ],
@@ -133,7 +133,7 @@ class LoanFormPdfService {
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text('AEC SACCO', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.green900)),
+                  pw.Text('AEC LMS', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.green900)),
                   pw.SizedBox(height: 4),
                   pw.Text('FINAL LOAN EXECUTION & DISBURSEMENT CERTIFICATE', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
                 ],

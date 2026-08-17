@@ -149,7 +149,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: scheme.surface,
       appBar: AppBar(
+        surfaceTintColor: Colors.transparent,
+        backgroundColor: scheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         title: const Text('User Management', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
         centerTitle: true,
         elevation: 0,
@@ -185,7 +189,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
                       return Container(
                         decoration: BoxDecoration(
-                          color: Theme.of(context).cardTheme.color,
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isPending ? const Color(0xFFE9A63C).withValues(alpha: 0.5) : scheme.outlineVariant.withValues(alpha: 0.5),

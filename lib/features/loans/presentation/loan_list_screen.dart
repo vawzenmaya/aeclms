@@ -122,7 +122,11 @@ class _LoanListScreenState extends State<LoanListScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: scheme.surface,
       appBar: AppBar(
+        surfaceTintColor: Colors.transparent,
+        backgroundColor: scheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         title: Text(widget.title, style: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
         centerTitle: true,
         elevation: 0,

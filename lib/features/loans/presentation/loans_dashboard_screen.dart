@@ -136,12 +136,16 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: scheme.surface,
       drawer: _DashboardDrawer(
         profile: widget.profile,
         authService: widget.authService,
         isAdmin: _isAdmin,
       ),
       appBar: AppBar(
+        backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         title: const Text(
           'Dashboard',
           style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5),
@@ -253,7 +257,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
                                 icon: Icons.history_rounded,
                                 color: scheme.onSurface.withValues(alpha: 0.6),
                                 onTap: () => _navigateToListScreen(
-                                  title: 'Community History', 
+                                  title: 'History', 
                                   loans: _history,
                                   isHistory: true,
                                 ),

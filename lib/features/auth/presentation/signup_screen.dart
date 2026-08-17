@@ -72,9 +72,11 @@ class _SignupScreenState extends State<SignupScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: scheme.surface,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         elevation: 0,
         leading: const BackButton(),
       ),
@@ -118,7 +120,7 @@ class _SignupScreenState extends State<SignupScreen> {
       child: Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(32),
           border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
           boxShadow: [

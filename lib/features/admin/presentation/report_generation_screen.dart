@@ -206,7 +206,11 @@ final TextEditingController _netPayCtrl = TextEditingController(text: '5000000')
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: scheme.surface,
       appBar: AppBar(
+        surfaceTintColor: Colors.transparent,
+        backgroundColor: scheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         title: const Text('Reports Center', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
         centerTitle: true,
         elevation: 0,
@@ -220,7 +224,7 @@ final TextEditingController _netPayCtrl = TextEditingController(text: '5000000')
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardTheme.color,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
               boxShadow: [
@@ -322,7 +326,7 @@ final TextEditingController _netPayCtrl = TextEditingController(text: '5000000')
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardTheme.color,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
               boxShadow: [

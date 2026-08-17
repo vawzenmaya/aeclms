@@ -91,7 +91,11 @@ class _AdminAllLoansScreenState extends State<AdminAllLoansScreen> {
     }).toList();
 
     return Scaffold(
+      backgroundColor: scheme.surface,
       appBar: AppBar(
+        backgroundColor: scheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        surfaceTintColor: Colors.transparent,
         title: const Text('System Loans', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
         centerTitle: true,
         elevation: 0,
@@ -171,7 +175,7 @@ class _AdminAllLoansScreenState extends State<AdminAllLoansScreen> {
                                   child: Container(
                                     margin: const EdgeInsets.only(bottom: 16),
                                     decoration: BoxDecoration(
-                                      color: Theme.of(context).cardTheme.color,
+                                      color: Theme.of(context).colorScheme.surface,
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
                                       boxShadow: [

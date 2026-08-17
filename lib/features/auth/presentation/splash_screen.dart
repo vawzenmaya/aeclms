@@ -79,7 +79,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     final scheme = Theme.of(context).colorScheme;
     
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: scheme.surface,
+      // backgroundColor: AppColors.darkBg,
       body: Stack(
         children: [
           // Background Gradient

@@ -57,6 +57,7 @@ flutter:
     - assets/animations/splash_animation/
     - assets/app_icon.png
     - assets/icon/icon.png
+    - assets/icon.png
   # fonts:
   #   - family:
   #     fonts:

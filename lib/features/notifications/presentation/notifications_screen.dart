@@ -147,6 +147,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return RefreshIndicator(
       onRefresh: _load,
       color: scheme.primary,
+      backgroundColor: scheme.surface,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
         itemCount: items.length,
@@ -200,7 +201,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        backgroundColor: scheme.surface,
         appBar: AppBar(
+          backgroundColor: scheme.surface,
+          surfaceTintColor: Colors.transparent,
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
           title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
           centerTitle: true,
           elevation: 0,
@@ -317,7 +322,8 @@ class _NotificationCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isRead ? Theme.of(context).cardTheme.color : scheme.primary.withValues(alpha: 0.05),
+        // FIX: Removed Theme.of(context).cardTheme.color and replaced it with scheme.surface
+        color: isRead ? scheme.surface : scheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isRead ? scheme.outlineVariant.withValues(alpha: 0.4) : scheme.primary.withValues(alpha: 0.3),

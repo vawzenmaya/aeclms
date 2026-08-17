@@ -134,7 +134,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     final isDisbursement = isApproval && _currentStage!['is_disbursement_stage'] == true;
     
     final result = await _showActionSignatureSheet(
-      isApproval ? (isDisbursement ? 'Disburse Loan' : 'Approve Stage') : 'Reject Application',
+      isApproval ? (isDisbursement ? 'Disburse Loan' : 'Approve') : 'Reject Application',
       isReject: !isApproval,
       isDisbursement: isDisbursement,
     );
@@ -209,7 +209,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                         child: Icon(isReject ? Icons.cancel_outlined : Icons.draw_rounded, color: buttonColor),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(child: Text('Action Signature', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: scheme.onSurface))),
+                      Expanded(child: Text('Approval Remarks', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: scheme.onSurface))),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -276,14 +276,21 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       value: disbursementMode,
-                      hint: const Text('Select Mode'),
+                      // FIX: Force hint text to be readable
+                      hint: Text('Select Mode', style: TextStyle(color: scheme.onSurface)),
+                      // FIX: Force the dropdown menu background to be light
+                      dropdownColor: scheme.surface,
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       ),
-                      items: ['RTGS', 'EFT', 'Cheque'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                      items: ['RTGS', 'EFT', 'Cheque'].map((e) => DropdownMenuItem(
+                        value: e, 
+                        // FIX: Force the text to be readable
+                        child: Text(e, style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface))
+                      )).toList(),
                       onChanged: (val) {
                         setSheetState(() => disbursementMode = val);
                         validate();
@@ -379,7 +386,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     }
     if (_error != null || _loan == null) {
       return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
         appBar: AppBar(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          surfaceTintColor: Colors.transparent,
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
           title: const Text('Error', style: TextStyle(fontWeight: FontWeight.w600)),
           leading: const BackButton(),
         ),
@@ -430,7 +441,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         : '-';
 
     return Scaffold(
+      backgroundColor: scheme.surface,
       appBar: AppBar(
+        backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         title: Text(
           loan['full_name'] as String? ?? 'Loan Details',
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
@@ -603,14 +618,14 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           child: Column(
             children: [
               _MetricTile(
-                title: 'Interest Rate',
+                title: 'Interest Rate (Per Annum)',
                 value: '${loan['interest_rate']}%',
                 subtitle: loan['interest_method'] as String?,
                 icon: Icons.percent_rounded,
               ),
               const SizedBox(height: 12),
               _MetricTile(
-                title: 'Processing Fee',
+                title: 'Processing Fee (0.005 of Principle)',
                 value: '${loan['processing_fee']}',
                 icon: Icons.receipt_long_rounded,
               ),
@@ -645,7 +660,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
       ),
@@ -847,7 +862,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     return Container(
       padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, -5)),
         ],
@@ -975,7 +990,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                 child: FilledButton(
                   onPressed: _acting ? null : () => _act('approved'),
                   style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: Text(_currentStage!['is_disbursement_stage'] == true ? 'Disburse Loan' : 'Approve Stage'),
+                  child: Text(_currentStage!['is_disbursement_stage'] == true ? 'Disburse Loan' : 'Approve'),
                 ),
               ),
             ]),

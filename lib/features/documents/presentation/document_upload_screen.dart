@@ -79,7 +79,11 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: scheme.surface,
       appBar: AppBar(
+        surfaceTintColor: Colors.transparent,
+        backgroundColor: scheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         title: const Text('Final Step', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
         centerTitle: true,
         automaticallyImplyLeading: false, // Prevents backing out without explicit action
@@ -173,7 +177,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                     index: 2,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Theme.of(context).cardTheme.color,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
                         boxShadow: [
@@ -207,7 +211,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
               child: Container(
                 padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(context).padding.bottom + 20),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardTheme.color,
+                  color: Theme.of(context).colorScheme.surface,
                   boxShadow: [
                     BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, -8)),
                   ],

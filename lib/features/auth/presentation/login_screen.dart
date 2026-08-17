@@ -67,6 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: scheme.surface,
       body: Stack(
         children: [
           // Subtle background gradient for depth
@@ -118,9 +119,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ],
                               ),
-                              child: Icon(
-                                Icons.savings_rounded,
-                                size: 56,
+                              child: Image.asset(
+                                'assets/icon.png',
+                                width: 56,
+                                height: 56,
                                 color: scheme.primary,
                               ),
                             ),
@@ -148,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         _StaggeredFadeIn(
                           index: 2,
                           child: Text(
-                            'Log in to your community account',
+                            'Log in to your Loan Management account.',
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   color: scheme.onSurface.withValues(alpha: 0.6),

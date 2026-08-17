@@ -51,8 +51,8 @@ class _AuthGateState extends State<AuthGate> {
             }
 
             if (profileSnapshot.hasError) {
-              // Surface the real error instead of silently showing "pending".
               return Scaffold(
+                backgroundColor: Theme.of(context).colorScheme.surface,
                 body: Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),

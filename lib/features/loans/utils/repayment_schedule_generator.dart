@@ -21,7 +21,7 @@ class RepaymentScheduleGenerator {
     final currency = NumberFormat("#,##0", "en_US");
 
     // --- CALCULATIONS ---
-    double ratio = monthlyInstallment > 0 ? (netPay / monthlyInstallment) * 100 : 0.0;
+    double ratio = monthlyInstallment > 0 ? (monthlyInstallment / netPay) * 100 : 0.0;
     
     double monthlyRate = (interestRate / 100) / 12;
     double balance = loanAmount;
@@ -104,7 +104,7 @@ class RepaymentScheduleGenerator {
                     pw.SizedBox(height: 4),
                     pw.Text('Monthly Installment: UGX ${currency.format(monthlyInstallment)}'),
                     pw.SizedBox(height: 4),
-                    pw.Text('Ratio (Net Pay/Inst.): ${ratio.toStringAsFixed(2)}%', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.green700)),
+                    pw.Text('Ratio (Inst/NetPay.): ${ratio.toStringAsFixed(2)}%', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.green700)),
                   ],
                 ),
               ],
