@@ -14,7 +14,7 @@ class DocumentsSection extends StatefulWidget {
     required this.loanId,
     required this.uploadedBy,
     required this.canUpload,
-    required this.hasGuarantor,
+    required this.hasGuarantor, 
   });
 
   final DocumentsRepository repository;
@@ -34,7 +34,6 @@ class _DocumentsSectionState extends State<DocumentsSection> {
   String? _deletingId; 
   String? _error;
 
-  // NEW: Dynamic required labels
   Map<String, String> get _docTypes => {
     'id_copy': 'ID Copy (Required)',
     'valid_contract': 'Valid Contract (Required)',
@@ -85,6 +84,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
     final docType = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true, // FIX 1: Allows the bottom sheet to expand beyond 50% of the screen height
       builder: (context) => _DocumentTypeSelector(availableTypes: availableTypes),
     );
     
@@ -387,41 +387,43 @@ class _DocumentTypeSelector extends StatelessWidget {
             Text('What kind of file are you uploading?', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 24),
             
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: availableTypes.length,
-              itemBuilder: (context, index) {
-                final docType = availableTypes[index];
-                
-                IconData getIconForType(String key) {
-                  switch (key) {
-                    case 'id_copy': return Icons.badge_outlined;
-                    case 'valid_contract': return Icons.gavel_rounded;
-                    case 'payslip': return Icons.receipt_long_rounded;
-                    default: return Icons.description_outlined;
+            // FIX 2: Wrapped the ListView in a Flexible so it can scroll instead of overflowing
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: availableTypes.length,
+                itemBuilder: (context, index) {
+                  final docType = availableTypes[index];
+                  
+                  IconData getIconForType(String key) {
+                    switch (key) {
+                      case 'id_copy': return Icons.badge_outlined;
+                      case 'valid_contract': return Icons.gavel_rounded;
+                      case 'payslip': return Icons.receipt_long_rounded;
+                      default: return Icons.description_outlined;
+                    }
                   }
-                }
-
-                return InkWell(
-                  onTap: () => Navigator.pop(context, docType.key),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: 0.4), shape: BoxShape.circle),
-                          child: Icon(getIconForType(docType.key), color: scheme.onSurface),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(child: Text(docType.value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: scheme.onSurface))),
-                        Icon(Icons.chevron_right_rounded, color: scheme.onSurface.withValues(alpha: 0.3)),
-                      ],
+            
+                  return InkWell(
+                    onTap: () => Navigator.pop(context, docType.key),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: 0.4), shape: BoxShape.circle),
+                            child: Icon(getIconForType(docType.key), color: scheme.onSurface),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(child: Text(docType.value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: scheme.onSurface))),
+                          Icon(Icons.chevron_right_rounded, color: scheme.onSurface.withValues(alpha: 0.3)),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
             const SizedBox(height: 16),
           ],

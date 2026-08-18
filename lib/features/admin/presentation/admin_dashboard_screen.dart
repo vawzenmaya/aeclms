@@ -10,8 +10,7 @@ import '../../auth/data/auth_service.dart';
 import 'admin_all_loans_screen.dart';
 import 'report_generation_screen.dart';
 import 'user_management_screen.dart';
-import '../../loans/data/loan_repository.dart';
-import '../../../main.dart'; // To access global loanRepository if needed
+import '../../../main.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   final Profile profile;
@@ -29,7 +28,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // Aggregate Metrics
   double _totalProcessingFees = 0;
   double _totalDisbursed = 0;
-  int _totalLoans = 0;
   int _pendingLoans = 0;
 
   // Chart Data
@@ -111,7 +109,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
       if (mounted) {
         setState(() {
-          _totalLoans = loans.length;
           _totalProcessingFees = fees;
           _totalDisbursed = disbursed;
           _pendingLoans = pending;
