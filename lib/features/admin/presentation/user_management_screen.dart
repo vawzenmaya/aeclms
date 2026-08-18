@@ -78,12 +78,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               child: const Icon(Icons.person_remove_rounded, color: Color(0xFFD9534F)),
             ),
             const SizedBox(width: 12),
-            const Text('Delete User?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20)),
+            Text('Delete User?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20, color: scheme.onSurface)), // FIX: Explicit text color
           ],
         ),
         content: Text(
           'Are you sure you want to permanently delete ${user['full_name']} from the system? This action cannot be undone.',
-          style: const TextStyle(height: 1.4),
+          style: TextStyle(height: 1.4, color: scheme.onSurface), // FIX: Explicit text color
         ),
         actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         actions: [
@@ -98,7 +98,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),
-            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
           ),
         ],
       ),
@@ -153,8 +153,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
         backgroundColor: scheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        title: const Text('User Management', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+        foregroundColor: scheme.onSurface,
+        title: Text('User Management', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5, color: scheme.onSurface)), // FIX: Explicit text color
         centerTitle: true,
         elevation: 0,
       ),
@@ -170,6 +170,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               : RefreshIndicator(
                   onRefresh: _fetchUsers,
                   color: scheme.primary,
+                  backgroundColor: scheme.surface, // FIX: Background color for loading indicator
                   child: ListView.separated(
                     padding: const EdgeInsets.all(24),
                     itemCount: _profiles.length,
@@ -189,7 +190,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
                       return Container(
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
+                          color: scheme.surface,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isPending ? const Color(0xFFE9A63C).withValues(alpha: 0.5) : scheme.outlineVariant.withValues(alpha: 0.5),
@@ -213,13 +214,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           ),
                           title: Text(
                             user['full_name'] ?? 'Unknown User',
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: scheme.onSurface),
                           ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: 4),
-                              // Displays the Role Label instead of the Phone Number
                               Row(
                                 children: [
                                   Icon(Icons.badge_rounded, size: 14, color: scheme.onSurface.withValues(alpha: 0.5)),
@@ -301,7 +301,7 @@ class _RoleAssignmentSheetState extends State<_RoleAssignmentSheet> {
   List<Map<String, dynamic>> _availableRoles = [];
   bool _isLoadingRoles = true;
   
-  // Hardcoded for testing. Update to your actual community ID!
+  // Hardcoded for testing.
   final String _defaultCommunityId = '915b96f5-57c2-424e-9b51-dca2b9adfcdb'; 
 
   @override
@@ -394,7 +394,7 @@ class _RoleAssignmentSheetState extends State<_RoleAssignmentSheet> {
               const SizedBox(height: 24),
               Text(
                 'Assign Role to ${widget.user['full_name']}', 
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: scheme.onSurface), // FIX: Explicit text color
               ),
               const SizedBox(height: 8),
               Text(
@@ -407,15 +407,18 @@ class _RoleAssignmentSheetState extends State<_RoleAssignmentSheet> {
                 ? const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
                 : DropdownButtonFormField<String>(
                     initialValue: _selectedRoleId,
-                    hint: const Text('Select Role'),
+                    dropdownColor: scheme.surface, // FIX: Explicit Dropdown Menu background
+                    hint: Text('Select Role', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))), // FIX: Hint text color
                     decoration: InputDecoration(
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true, // FIX: Match global form styling
+                      fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     ),
                     items: _availableRoles.map((role) {
                       return DropdownMenuItem<String>(
                         value: role['id'].toString(), 
-                        child: Text(role['label'].toString(), style: const TextStyle(fontWeight: FontWeight.w600)),
+                        child: Text(role['label'].toString(), style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface)), // FIX: Explicit option text color
                       );
                     }).toList(),
                     onChanged: (val) => setState(() => _selectedRoleId = val),

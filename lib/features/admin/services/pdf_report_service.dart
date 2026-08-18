@@ -6,6 +6,11 @@ import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 
 class PdfReportService {
+  static const _primaryColor = PdfColor.fromInt(0xFF1E3A8A); // Deep Corporate Blue
+  static const _accentColor = PdfColor.fromInt(0xFF58B982); // Financial Green
+  static const _greyLight = PdfColor.fromInt(0xFFF3F4F6);
+  static const _textDark = PdfColor.fromInt(0xFF1F2937);
+
   /// Generates the Master Loan Schedule (All Loans, Cleared, or Running)
   static Future<void> generateMasterSchedule({
     required String reportMonth,
@@ -13,80 +18,93 @@ class PdfReportService {
     required String filterStatus, // 'All', 'Cleared', 'Running'
   }) async {
     final pdf = pw.Document();
-
-    // Formatting currency
     final currency = NumberFormat("#,##0", "en_US");
+
+    // Calculate Totals for the Summary Box
+    final double totalAmount = loans.fold(0.0, (sum, l) => sum + (l['approved_amount'] as num));
+    final double totalInstallments = loans.fold(0.0, (sum, l) => sum + (l['monthly_installment'] as num));
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat
-            .a4
-            .landscape, // Landscape handles the 8 columns better
+        pageFormat: PdfPageFormat.a4.landscape, 
         margin: const pw.EdgeInsets.all(32),
         build: (context) => [
-          // Header Section
+          // HEADER SECTION
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: pw.CrossAxisAlignment.end,
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text(
-                    'AEC LOAN SCHEDULE',
-                    style: pw.TextStyle(
-                      fontSize: 24,
-                      fontWeight: pw.FontWeight.bold,
-                      color: PdfColors.blue900,
-                    ),
+                    'ATOMIC ENERGY COUNCIL INVESTMENT CLUB',
+                    style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: _primaryColor),
                   ),
                   pw.SizedBox(height: 4),
                   pw.Text(
-                    'Report Month: $reportMonth',
-                    style: const pw.TextStyle(
-                      fontSize: 14,
-                      color: PdfColors.grey700,
-                    ),
-                  ),
-                  pw.Text(
-                    'Filter: $filterStatus Loans',
-                    style: const pw.TextStyle(
-                      fontSize: 12,
-                      color: PdfColors.grey600,
-                    ),
+                    'MASTER LOAN SCHEDULE',
+                    style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: _textDark, letterSpacing: 1.2),
                   ),
                 ],
               ),
-              pw.Text(
-                'Generated: ${DateFormat('dd MMM yyyy, HH:mm').format(DateTime.now())}',
-                style: const pw.TextStyle(
-                  fontSize: 10,
-                  color: PdfColors.grey500,
-                ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Text(
+                    'Report Month: $reportMonth',
+                    style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: _primaryColor),
+                  ),
+                  pw.Text(
+                    'Filter Applied: $filterStatus Loans',
+                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'Generated: ${DateFormat('dd MMM yyyy, HH:mm').format(DateTime.now())}',
+                    style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey500),
+                  ),
+                ],
               ),
             ],
           ),
 
+          pw.SizedBox(height: 20),
+
+          // SUMMARY METRICS BOX
+          pw.Container(
+            padding: const pw.EdgeInsets.all(16),
+            decoration: pw.BoxDecoration(
+              color: _greyLight,
+              borderRadius: pw.BorderRadius.circular(8),
+              border: pw.Border.all(color: PdfColors.grey300),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+              children: [
+                _buildSummaryItem('Total Records', loans.length.toString()),
+                _buildSummaryItem('Total Disbursed (UGX)', currency.format(totalAmount)),
+                _buildSummaryItem('Expected Monthly Return (UGX)', currency.format(totalInstallments)),
+              ],
+            ),
+          ),
+
           pw.SizedBox(height: 24),
 
-          // Data Table
+          // DATA TABLE
           pw.TableHelper.fromTextArray(
-            headerStyle: pw.TextStyle(
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.white,
-              fontSize: 10,
-            ),
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue900),
-            cellStyle: const pw.TextStyle(fontSize: 9),
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 10),
+            headerDecoration: const pw.BoxDecoration(color: _primaryColor),
+            cellStyle: const pw.TextStyle(fontSize: 9, color: _textDark),
             cellAlignments: {
-              0: pw.Alignment.centerLeft, // No.
-              1: pw.Alignment.centerLeft, // Name
+              0: pw.Alignment.centerLeft,  // No.
+              1: pw.Alignment.centerLeft,  // Name
               2: pw.Alignment.centerRight, // Approved Amount
               3: pw.Alignment.centerRight, // Monthly Installment
-              4: pw.Alignment.center, // Number of months
-              5: pw.Alignment.center, // Remaining months
-              6: pw.Alignment.center, // Last month of clearance
-              7: pw.Alignment.center, // Status
+              4: pw.Alignment.center,      // Total Months
+              5: pw.Alignment.center,      // Remaining Months
+              6: pw.Alignment.center,      // Clearance Month
+              7: pw.Alignment.center,      // Status
             },
             oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
             headers: [
@@ -99,28 +117,40 @@ class PdfReportService {
               'Clearance\nMonth',
               'Status',
             ],
-            data: List<List<String>>.generate(loans.length, (index) {
-              final l = loans[index];
-              return [
-                (index + 1).toString(),
-                l['name'] ?? 'Unknown',
-                currency.format(l['approved_amount'] ?? 0),
-                currency.format(l['monthly_installment'] ?? 0),
-                (l['total_months'] ?? 0).toString(),
-                (l['remaining_months'] ?? 0).toString(),
-                l['clearance_month'] ?? '-',
-                l['status'] ?? 'Running',
-              ];
-            }),
+            data: [
+              ...List<List<String>>.generate(loans.length, (index) {
+                final l = loans[index];
+                return [
+                  (index + 1).toString(),
+                  l['name'] ?? 'Unknown',
+                  currency.format(l['approved_amount'] ?? 0),
+                  currency.format(l['monthly_installment'] ?? 0),
+                  (l['total_months'] ?? 0).toString(),
+                  (l['remaining_months'] ?? 0).toString(),
+                  l['clearance_month'] ?? '-',
+                  l['status'] ?? 'Running',
+                ];
+              }),
+              // Append Totals Row at the bottom of the table
+              [
+                '',
+                'GRAND TOTAL',
+                currency.format(totalAmount),
+                currency.format(totalInstallments),
+                '-',
+                '-',
+                '-',
+                '-',
+              ]
+            ],
           ),
         ],
       ),
     );
 
-    // This triggers the native print/share/save PDF dialog on iOS and Android!
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
-      name: 'AEC_Loan_Schedule_$reportMonth.pdf',
+      name: 'AEC_Loan_Schedule_${reportMonth.replaceAll(' ', '_')}.pdf',
     );
   }
 
@@ -131,26 +161,17 @@ class PdfReportService {
     required double interestRate,
     required int periodMonths,
     required double monthlyInstallment,
-    required double netPay, // NEW: Added Net Pay parameter
+    required double netPay,
     required List<Map<String, dynamic>> scheduleRows,
   }) async {
     final pdf = pw.Document();
     final currency = NumberFormat("#,##0", "en_US");
 
     // CALCULATIONS
-    double ratio = (monthlyInstallment / netPay) * 100;
-    double totalInstallment = scheduleRows.fold(
-      0,
-      (sum, row) => sum + row['installment'],
-    );
-    double totalInterest = scheduleRows.fold(
-      0,
-      (sum, row) => sum + row['interest'],
-    );
-    double totalPrincipal = scheduleRows.fold(
-      0,
-      (sum, row) => sum + row['principal'],
-    );
+    double ratio = netPay > 0 ? (monthlyInstallment / netPay) * 100 : 0.0;
+    double totalInstallment = scheduleRows.fold(0, (sum, row) => sum + row['installment']);
+    double totalInterest = scheduleRows.fold(0, (sum, row) => sum + row['interest']);
+    double totalPrincipal = scheduleRows.fold(0, (sum, row) => sum + row['principal']);
 
     // Build Table Data
     List<List<String>> tableData = List<List<String>>.generate(
@@ -181,24 +202,35 @@ class PdfReportService {
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
         build: (context) => [
-          // Header Section
-          pw.Text(
-            'AMORTIZATION SCHEDULE',
-            style: pw.TextStyle(
-              fontSize: 22,
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.blue900,
-            ),
+          // HEADER SECTION
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.Text(
+                'ATOMIC ENERGY COUNCIL INVESTMENT CLUB',
+                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: _primaryColor),
+              ),
+              pw.SizedBox(height: 4),
+              pw.Text(
+                'INDIVIDUAL AMORTIZATION SCHEDULE',
+                style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: _textDark, letterSpacing: 1.2),
+              ),
+              pw.SizedBox(height: 8),
+              pw.Text(
+                'Generated on: ${DateFormat('MMMM dd, yyyy').format(DateTime.now())}',
+                style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+              ),
+            ],
           ),
-          pw.SizedBox(height: 16),
+          pw.SizedBox(height: 24),
 
-          // Loan Summary Box
+          // LOAN SUMMARY BOX
           pw.Container(
-            padding: const pw.EdgeInsets.all(12),
+            padding: const pw.EdgeInsets.all(16),
             decoration: pw.BoxDecoration(
-              color: PdfColors.grey100,
+              color: _greyLight,
               border: pw.Border.all(color: PdfColors.grey300),
-              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+              borderRadius: pw.BorderRadius.circular(8),
             ),
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -206,38 +238,30 @@ class PdfReportService {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text(
-                      'Applicant: $applicantName',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                    pw.SizedBox(height: 4),
-                    pw.Text('Loan Amount: UGX ${currency.format(loanAmount)}'),
-                    pw.SizedBox(height: 4),
-                    pw.Text(
-                      'Interest Rate: ${interestRate.toStringAsFixed(1)}%',
-                    ),
+                    _buildDetailRow('Applicant Name:', applicantName),
+                    pw.SizedBox(height: 8),
+                    _buildDetailRow('Principal Loan Amount:', 'UGX ${currency.format(loanAmount)}'),
+                    pw.SizedBox(height: 8),
+                    _buildDetailRow('Interest Rate (Annual):', '${interestRate.toStringAsFixed(1)}%'),
                   ],
                 ),
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
-                    pw.Text(
-                      'Period: $periodMonths Months',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                    pw.SizedBox(height: 4),
-                    pw.Text('Net Pay: UGX ${currency.format(netPay)}'),
-                    pw.SizedBox(height: 4),
-                    pw.Text(
-                      'Monthly Installment: UGX ${currency.format(monthlyInstallment)}',
-                    ),
-                    pw.SizedBox(height: 4),
-                    pw.Text(
-                      'Ratio (Inst/NetPay): ${ratio.toStringAsFixed(2)}%',
-                      style: pw.TextStyle(
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.green700,
-                      ),
+                    _buildDetailRow('Repayment Period:', '$periodMonths Months'),
+                    pw.SizedBox(height: 8),
+                    _buildDetailRow('Monthly Net Pay:', 'UGX ${currency.format(netPay)}'),
+                    pw.SizedBox(height: 8),
+                    _buildDetailRow('Monthly Installment:', 'UGX ${currency.format(monthlyInstallment)}'),
+                    pw.SizedBox(height: 8),
+                    pw.Row(
+                      children: [
+                        pw.Text('DTI Ratio (Inst/NetPay): ', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                        pw.Text(
+                          '${ratio.toStringAsFixed(1)}%',
+                          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: ratio > 30 ? PdfColors.red : _accentColor),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -247,15 +271,11 @@ class PdfReportService {
 
           pw.SizedBox(height: 24),
 
-          // Amortization Table
+          // AMORTIZATION TABLE
           pw.TableHelper.fromTextArray(
-            headerStyle: pw.TextStyle(
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.white,
-              fontSize: 10,
-            ),
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue900),
-            cellStyle: const pw.TextStyle(fontSize: 9),
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 10),
+            headerDecoration: const pw.BoxDecoration(color: _primaryColor),
+            cellStyle: const pw.TextStyle(fontSize: 9, color: _textDark),
             cellAlignments: {
               0: pw.Alignment.center,
               1: pw.Alignment.centerRight,
@@ -265,15 +285,39 @@ class PdfReportService {
             },
             oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
             headers: [
-              'Month',
-              'Installment (UGX)',
-              'Interest (UGX)',
-              'Principal (UGX)',
-              'Balance (UGX)',
+              'Month / Period',
+              'Total Installment (UGX)',
+              'Interest Paid (UGX)',
+              'Principal Paid (UGX)',
+              'Remaining Balance (UGX)',
             ],
-            data:
-                tableData, // Passed the data containing the appended Totals row
+            data: tableData, 
           ),
+          
+          pw.SizedBox(height: 40),
+          
+          // SIGNATURE BLOCK
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Container(width: 150, height: 1, color: PdfColors.grey400),
+                  pw.SizedBox(height: 8),
+                  pw.Text('Applicant Signature', style: const pw.TextStyle(fontSize: 10)),
+                ]
+              ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Container(width: 150, height: 1, color: PdfColors.grey400),
+                  pw.SizedBox(height: 8),
+                  pw.Text('Authorized Approver', style: const pw.TextStyle(fontSize: 10)),
+                ]
+              ),
+            ]
+          )
         ],
       ),
     );
@@ -281,6 +325,29 @@ class PdfReportService {
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
       name: 'Amortization_${applicantName.replaceAll(' ', '_')}.pdf',
+    );
+  }
+
+  // Helpers for formatting the header texts
+  static pw.Widget _buildSummaryItem(String label, String value) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      children: [
+        pw.Text(label, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+        pw.SizedBox(height: 4),
+        pw.Text(value, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
+      ],
+    );
+  }
+
+  static pw.Widget _buildDetailRow(String label, String value) {
+    return pw.Row(
+      mainAxisSize: pw.MainAxisSize.min,
+      children: [
+        pw.Text(label, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+        pw.SizedBox(width: 8),
+        pw.Text(value, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: _textDark)),
+      ],
     );
   }
 }

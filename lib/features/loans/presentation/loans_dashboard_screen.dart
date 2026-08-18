@@ -4,13 +4,15 @@ import 'package:aeclms/core/widgets/custom_loader.dart';
 import 'package:aeclms/features/admin/presentation/admin_dashboard_screen.dart';
 import 'package:aeclms/features/loans/presentation/terms_and_conditions_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Needed to fetch roles
+
 import '../../auth/data/auth_service.dart';
 import '../../notifications/data/notifications_repository.dart';
 import '../../notifications/presentation/notifications_screen.dart';
 import '../../profile/presentation/settings_screen.dart';
 import '../data/loan_repository.dart';
 import 'loan_list_screen.dart';
-import 'repayments_screen.dart'; // FIX: Import the new screen
+import 'repayments_screen.dart'; 
 
 class LoansDashboardScreen extends StatefulWidget {
   const LoansDashboardScreen({
@@ -35,10 +37,9 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
   List<Map<String, dynamic>> _mine = [];
   List<Map<String, dynamic>> _awaitingAction = [];
   int _unreadCount = 0;
-
-  bool get _isAdmin {
-    return true;
-  }
+  
+  // FIX: This now defaults to false and dynamically checks the database!
+  bool _isAdmin = false; 
 
   @override
   void initState() {
@@ -56,14 +57,24 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
         communityId: widget.profile.communityId!,
       ),
       widget.notificationsRepository.fetchUnreadCount(),
+      // FIX: Fetch the user's assigned roles from the database
+      Supabase.instance.client
+          .from('user_roles')
+          .select('role_id')
+          .eq('profile_id', widget.profile.id)
+          .eq('is_active', true)
     ]);
+    
     final loans = results[0] as List<Map<String, dynamic>>;
     final myStages = results[1] as Set<String>;
     final unread = results[2] as int;
+    final myRoles = results[3] as List<dynamic>;
+
+    // FIX: Based on your database schema, Community Chairperson is ID = 7
+    bool isCommunityChairperson = myRoles.any((row) => row['role_id'] == 7);
 
     final mine = <Map<String, dynamic>>[];
     final awaiting = <Map<String, dynamic>>[];
-    final history = <Map<String, dynamic>>[];
 
     for (final loan in loans) {
       final isApplicant = loan['applicant_id'] == widget.profile.id;
@@ -78,9 +89,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
         awaiting.add(loan);
       } else if (isApplicant) {
         mine.add(loan);
-      } else {
-        history.add(loan);
-      }
+      } 
     }
 
     if (!mounted) return;
@@ -88,12 +97,12 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
       _mine = mine;
       _awaitingAction = awaiting;
       _unreadCount = unread;
+      _isAdmin = isCommunityChairperson; // Unlocks Admin Hub only for the Chairperson
       _loading = false;
     });
   }
 
   Future<void> _startNewApplication() async {
-    // FIX: Route to the Terms and Conditions screen first
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => TermsAndConditionsScreen(
@@ -139,7 +148,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
       drawer: _DashboardDrawer(
         profile: widget.profile,
         authService: widget.authService,
-        isAdmin: _isAdmin,
+        isAdmin: _isAdmin, // Only true if they hold Role ID 7
       ),
       appBar: AppBar(
         backgroundColor: scheme.surface,
@@ -261,16 +270,13 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
                                 ),
                               ),
                             ),
-                            // FIX: Replaced 'History' with 'Repayments'
                             _StaggeredFadeIn(
                               index: 5,
                               child: _DashboardBox(
                                 title: 'Repayments',
                                 subtitle: 'Track installments',
                                 icon: Icons.payments_rounded,
-                                color: const Color(
-                                  0xFF58B982,
-                                ), // Clean financial green
+                                color: const Color(0xFF58B982), 
                                 onTap: () => Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (_) => RepaymentsScreen(
@@ -519,6 +525,7 @@ class _DashboardDrawer extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
+                // THIS NOW ONLY SHOWS IF THE USER IS THE CHAIRPERSON
                 if (isAdmin) ...[
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),

@@ -1,10 +1,9 @@
 // lib/features/admin/presentation/report_generation_screen.dart
 
-// ignore_for_file: curly_braces_in_flow_control_structures
-
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 import '../../../core/widgets/custom_loader.dart';
 import '../services/pdf_report_service.dart';
 
@@ -18,7 +17,7 @@ class ReportGenerationScreen extends StatefulWidget {
 class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
   // Master Schedule State
   String _selectedStatus = 'All';
-  final String _selectedMonth = 'July 2026';
+  final String _selectedMonth = DateFormat('MMMM yyyy').format(DateTime.now());
   bool _isGeneratingMaster = false;
   final List<String> _statusOptions = ['All', 'Running', 'Cleared'];
 
@@ -27,14 +26,6 @@ class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
   bool _isGeneratingAmortization = false;
   List<Map<String, dynamic>> _activeLoans = [];
   String? _selectedLoanId;
-
-  final TextEditingController _netPayCtrl = TextEditingController(text: '5000000'); // Defaulting to 5M as per your excel
-
-  @override
-  void dispose() {
-    _netPayCtrl.dispose();
-    super.dispose();
-  }
 
   @override
   void initState() {
@@ -69,48 +60,52 @@ class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
     setState(() => _isGeneratingMaster = true);
     
     try {
-      // 1. Fetch real data from Supabase
+      // 1. Fetch real data from Supabase including Repayments history!
       final response = await Supabase.instance.client
           .from('loans')
-          .select('*, profiles!loans_applicant_id_fkey(full_name)')
-          .neq('status', 'draft') // Exclude draft applications
+          .select('*, profiles!loans_applicant_id_fkey(full_name), repayments(amount)')
+          .neq('status', 'draft') 
           .order('created_at', ascending: false);
 
       final rawLoans = List<Map<String, dynamic>>.from(response);
       final List<Map<String, dynamic>> formattedData = [];
       
-      // 2. Filter and Map the data
+      // 2. Filter and Map the exact database truth
       for (var loan in rawLoans) {
         final dbStatus = (loan['status'] as String? ?? '').toLowerCase();
         
         // Map DB status to Report Status
         String reportStatus = 'Pending';
-        if (dbStatus == 'approved' || dbStatus == 'active') {
+        if (['approved', 'active', 'disbursed', 'completed'].contains(dbStatus)) {
           reportStatus = 'Running';
-        } else if (dbStatus == 'cleared') reportStatus = 'Cleared';
-        else if (dbStatus == 'rejected') reportStatus = 'Rejected';
+        } else if (dbStatus == 'cleared') {
+          reportStatus = 'Cleared';
+        } else if (dbStatus == 'rejected') {
+          reportStatus = 'Rejected';
+        }
         
-        // Apply dropdown filter (Skip if it doesn't match the selected filter)
+        // Apply dropdown filter
         if (_selectedStatus == 'Running' && reportStatus != 'Running') continue;
         if (_selectedStatus == 'Cleared' && reportStatus != 'Cleared') continue;
-        // If _selectedStatus is 'All', we let everything through.
 
         final amount = (loan['amount_requested'] as num?)?.toDouble() ?? 0.0;
+        final emi = (loan['installment_amount'] as num?)?.toDouble() ?? 0.0;
+        final totalMonths = loan['duration_months'] as int? ?? 0;
         
-        // Dynamic EMI calculation fallback (in case it's not saved in your DB yet)
-        double emi = 0;
-        if (amount > 0) {
-            double monthlyRate = (8.0 / 100) / 12; // 8% standard
-            emi = (amount * monthlyRate * pow(1 + monthlyRate, 60)) / (pow(1 + monthlyRate, 60) - 1);
-        }
+        // Calculate exact remaining months based on actual DB payments
+        final repayments = (loan['repayments'] as List?) ?? [];
+        final monthsPaid = repayments.length;
+        final remainingMonths = max(0, totalMonths - monthsPaid);
 
         formattedData.add({
           'name': loan['profiles']?['full_name'] ?? 'Unknown Applicant',
           'approved_amount': loan['amount_approved'] ?? amount, 
-          'monthly_installment': loan['monthly_installment'] ?? emi, 
-          'total_months': loan['duration_months'] ?? 60,
-          'remaining_months': loan['remaining_months'] ?? 60, // You can update this once a Repayments module is built
-          'clearance_month': loan['clearance_month'] ?? '-',
+          'monthly_installment': emi, 
+          'total_months': totalMonths,
+          'remaining_months': remainingMonths,
+          'clearance_month': loan['expected_end_date'] != null 
+              ? DateFormat('MMM yyyy').format(DateTime.parse(loan['expected_end_date'])) 
+              : '-',
           'status': reportStatus,
         });
       }
@@ -146,49 +141,50 @@ class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
     setState(() => _isGeneratingAmortization = true);
 
     try {
-      final selectedLoan = _activeLoans.firstWhere((l) => l['id'] == _selectedLoanId);
-      final applicantName = selectedLoan['profiles']?['full_name'] ?? 'Unknown Applicant';
-      final loanAmount = (selectedLoan['amount_requested'] as num?)?.toDouble() ?? 0.0;
+      final supabase = Supabase.instance.client;
       
-      // Parse the Net Pay from the text field
-      final netPay = double.tryParse(_netPayCtrl.text.replaceAll(',', '')) ?? 0.0;
-      
-      final periodMonths = 60; 
-      final interestRate = 8.0; 
+      // 1. Fetch exact core loan details
+      final loanResponse = await supabase
+          .from('loans')
+          .select('*, profiles!loans_applicant_id_fkey(full_name)')
+          .eq('id', _selectedLoanId!)
+          .single();
 
-      // --- MATHEMATICAL AMORTIZATION GENERATOR ---
-      double monthlyRate = (interestRate / 100) / 12;
-      double emi = 0;
+      final applicantName = loanResponse['profiles']?['full_name'] ?? 'Unknown Applicant';
+      final loanAmount = (loanResponse['amount_requested'] as num?)?.toDouble() ?? 0.0;
+      final netPay = (loanResponse['net_pay'] as num?)?.toDouble() ?? 0.0;
+      final periodMonths = loanResponse['duration_months'] as int? ?? 60;
+      final interestRate = (loanResponse['interest_rate'] as num?)?.toDouble() ?? 8.0;
+      final emi = (loanResponse['installment_amount'] as num?)?.toDouble() ?? 0.0;
+
+      // 2. Fetch the OFFICIAL Amortization Schedule from the database
+      final scheduleResponse = await supabase
+          .from('loan_amortization_schedule')
+          .select('*')
+          .eq('loan_id', _selectedLoanId!)
+          .order('period_number', ascending: true);
+          
       List<Map<String, dynamic>> scheduleRows = [];
       
-      if (monthlyRate > 0 && periodMonths > 0 && loanAmount > 0) {
-        emi = (loanAmount * monthlyRate * pow(1 + monthlyRate, periodMonths)) / (pow(1 + monthlyRate, periodMonths) - 1);
-        double balance = loanAmount;
-        
-        for (int i = 1; i <= periodMonths; i++) {
-          double interest = balance * monthlyRate;
-          double principal = emi - interest;
-          balance -= principal;
-          
-          if (balance < 0) balance = 0; 
-          
-          scheduleRows.add({
-            'period': i,
-            'installment': emi,
-            'interest': interest,
-            'principal': principal,
-            'balance': balance,
-          });
-        }
+      // Map DB columns to what the PDF generator expects
+      for (var row in scheduleResponse) {
+        scheduleRows.add({
+          'period': row['period_number'],
+          'installment': row['installment'],
+          'interest': row['interest'],
+          'principal': row['principal'],
+          'balance': row['balance'],
+        });
       }
 
+      // 3. Fire to PDF generator
       await PdfReportService.generateAmortizationSchedule(
         applicantName: applicantName,
         loanAmount: loanAmount,
         interestRate: interestRate,
         periodMonths: periodMonths,
         monthlyInstallment: emi,
-        netPay: netPay, // PASSING IT HERE
+        netPay: netPay,
         scheduleRows: scheduleRows,
       );
 
@@ -204,16 +200,17 @@ class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final currency = NumberFormat("#,##0", "en_US");
 
     return Scaffold(
       backgroundColor: scheme.surface,
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
         backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface, // FIX: Forces icon and back button colors
+        foregroundColor: scheme.onSurface,
         title: Text(
           'Reports Center', 
-          style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5, color: scheme.onSurface), // FIX: Explicit title color
+          style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5, color: scheme.onSurface),
         ),
         centerTitle: true,
         elevation: 0,
@@ -249,9 +246,9 @@ class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Master Loan Schedule', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: scheme.onSurface)), // FIX: Explicit text color
+                          Text('Master Loan Schedule', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: scheme.onSurface)),
                           const SizedBox(height: 4),
-                          Text('Generate summary of all system loans', style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.6))), // FIX: Adaptive grey
+                          Text('Generate summary of all system loans', style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.6))),
                         ],
                       ),
                     ),
@@ -265,17 +262,17 @@ class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
                 
                 DropdownButtonFormField<String>(
                   initialValue: _selectedStatus,
-                  dropdownColor: scheme.surface, // FIX: Light dropdown menu
+                  dropdownColor: scheme.surface,
                   decoration: InputDecoration(
                     labelText: 'Loan Status',
-                    filled: true, // FIX: Match other inputs
-                    fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3), // FIX: Match other inputs
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), // FIX: Match other inputs
+                    filled: true,
+                    fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   items: _statusOptions.map((s) => DropdownMenuItem(
                     value: s, 
-                    child: Text(s, style: TextStyle(color: scheme.onSurface)), // FIX: Explicit text color
+                    child: Text(s, style: TextStyle(color: scheme.onSurface)),
                   )).toList(),
                   onChanged: (val) => setState(() => _selectedStatus = val!),
                 ),
@@ -330,9 +327,9 @@ class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Individual Amortization', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: scheme.onSurface)), // FIX: Explicit text color
+                          Text('Individual Amortization', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: scheme.onSurface)),
                           const SizedBox(height: 4),
-                          Text('Detailed payment schedule per user', style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.6))), // FIX: Adaptive grey
+                          Text('Detailed payment schedule per user', style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.6))),
                         ],
                       ),
                     ),
@@ -350,25 +347,25 @@ class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
                         ? Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(12)),
-                            child: Text('No active loans found in the system.', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))), // FIX: Adaptive text
+                            child: Text('No active loans found in the system.', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))),
                           )
                         : DropdownButtonFormField<String>(
                             initialValue: _selectedLoanId,
-                            hint: Text('Choose a loan...', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7))), // FIX: Adaptive hint
-                            dropdownColor: scheme.surface, // FIX: Light dropdown menu
+                            hint: Text('Choose a loan...', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7))),
+                            dropdownColor: scheme.surface,
                             isExpanded: true, 
                             decoration: InputDecoration(
-                              filled: true, // FIX: Match other inputs
-                              fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3), // FIX: Match other inputs
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), // FIX: Match other inputs
+                              filled: true,
+                              fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                             ),
                             items: _activeLoans.map((loan) {
                               final name = loan['profiles']?['full_name'] ?? 'Unknown';
-                              final amount = loan['amount_requested']?.toString() ?? '0';
+                              final amount = currency.format((loan['amount_requested'] as num?)?.toDouble() ?? 0);
                               return DropdownMenuItem<String>(
                                 value: loan['id'].toString(),
-                                child: Text('$name (UGX $amount)', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface)), // FIX: Explicit text color
+                                child: Text('$name (UGX $amount)', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface)),
                               );
                             }).toList(),
                             onChanged: (val) => setState(() => _selectedLoanId = val),
