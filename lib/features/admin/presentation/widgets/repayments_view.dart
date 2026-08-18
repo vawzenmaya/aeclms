@@ -22,6 +22,7 @@ class _RepaymentsViewState extends State<RepaymentsView> {
   
   List<Map<String, dynamic>> _schedule = [];
   List<Map<String, dynamic>> _repayments = [];
+  // ignore: unused_field
   Map<String, dynamic>? _selectedLoanData;
 
   @override

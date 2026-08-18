@@ -10,6 +10,7 @@ import '../../profile/presentation/settings_screen.dart';
 import '../data/loan_repository.dart';
 import 'application_form_screen.dart';
 import 'loan_list_screen.dart';
+import 'repayments_screen.dart'; // FIX: Import the new screen
 
 class LoansDashboardScreen extends StatefulWidget {
   const LoansDashboardScreen({
@@ -91,8 +92,6 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
     });
   }
 
-  // --- NAVIGATION HELPERS ---
-
   Future<void> _startNewApplication() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -147,11 +146,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
         foregroundColor: scheme.onSurface,
         title: Text(
           'Dashboard',
-          style: TextStyle(
-            fontWeight: FontWeight.w700, 
-            letterSpacing: -0.5,
-            color: scheme.onSurface, // FIX: Explicit color
-          ),
+          style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5, color: scheme.onSurface),
         ),
         centerTitle: true,
         actions: [
@@ -184,7 +179,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               color: scheme.primary,
-              backgroundColor: scheme.surface, // FIX: Explicit background
+              backgroundColor: scheme.surface,
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.only(bottom: 40), 
@@ -203,17 +198,11 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
                           index: 1,
                           child: Text(
                             'Overview', 
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800, 
-                              letterSpacing: -0.5,
-                              color: scheme.onSurface, // FIX: Explicit color
-                            ),
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5, color: scheme.onSurface),
                           ),
                         ),
                         const SizedBox(height: 16),
                         
-                        // The Grid Layout
                         GridView.count(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
@@ -261,17 +250,16 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
                                 ),
                               ),
                             ),
+                            // FIX: Replaced 'History' with 'Repayments'
                             _StaggeredFadeIn(
                               index: 5,
                               child: _DashboardBox(
-                                title: 'History',
-                                subtitle: '${_history.length} Past Records',
-                                icon: Icons.history_rounded,
-                                color: scheme.onSurface.withValues(alpha: 0.6),
-                                onTap: () => _navigateToListScreen(
-                                  title: 'History', 
-                                  loans: _history,
-                                  isHistory: true,
+                                title: 'Repayments',
+                                subtitle: 'Track installments',
+                                icon: Icons.payments_rounded,
+                                color: const Color(0xFF58B982), // Clean financial green
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => RepaymentsScreen(profileId: widget.profile.id))
                                 ),
                               ),
                             ),
@@ -444,7 +432,7 @@ class _DashboardDrawer extends StatelessWidget {
                     fontSize: 20, 
                     fontWeight: FontWeight.w800, 
                     letterSpacing: -0.5,
-                    color: scheme.onSurface, // FIX: Explicit Color
+                    color: scheme.onSurface, 
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -647,7 +635,7 @@ class _DashboardHero extends StatelessWidget {
                     fontSize: 22,
                     fontWeight: FontWeight.w800, 
                     letterSpacing: -0.5,
-                    color: scheme.onSurface, // FIX: Explicit Color
+                    color: scheme.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
