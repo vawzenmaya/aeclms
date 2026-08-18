@@ -72,12 +72,12 @@ class _LoanListScreenState extends State<LoanListScreen> {
               child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFD9534F)),
             ),
             const SizedBox(width: 12),
-            const Text('Delete Draft?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20)),
+            Text('Delete Draft?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20, color: scheme.onSurface)),
           ],
         ),
-        content: const Text(
+        content: Text(
           'Are you sure you want to permanently delete this draft application? This action cannot be undone.',
-          style: TextStyle(height: 1.4),
+          style: TextStyle(height: 1.4, color: scheme.onSurface.withValues(alpha: 0.8)),
         ),
         actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         actions: [
@@ -92,7 +92,7 @@ class _LoanListScreenState extends State<LoanListScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),
-            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
           ),
         ],
       ),
@@ -126,8 +126,11 @@ class _LoanListScreenState extends State<LoanListScreen> {
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
         backgroundColor: scheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        title: Text(widget.title, style: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+        foregroundColor: scheme.onSurface,
+        title: Text(
+          widget.title, 
+          style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5, color: scheme.onSurface),
+        ),
         centerTitle: true,
         elevation: 0,
       ),
@@ -165,7 +168,6 @@ class _LoanListScreenState extends State<LoanListScreen> {
   }
 }
 
-// Inherited directly from your original dashboard code
 class _LoanCard extends StatelessWidget {
   const _LoanCard({
     required this.loan, 
@@ -205,7 +207,8 @@ class _LoanCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isHistory ? scheme.surfaceContainerHighest.withValues(alpha: 0.2) : Theme.of(context).cardTheme.color,
+        // FIX: Replaced Theme.of(context).cardTheme.color with scheme.surface to ignore dark global config
+        color: isHistory ? scheme.surfaceContainerHighest.withValues(alpha: 0.2) : scheme.surface,
         borderRadius: BorderRadius.circular(24),
         border: cardBorder,
         boxShadow: shadow,
@@ -283,7 +286,7 @@ class _LoanCard extends StatelessWidget {
                 
                 Text(
                   name,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: scheme.onSurface),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -303,10 +306,11 @@ class _LoanCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         amountString,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -1,
+                          color: scheme.onSurface,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

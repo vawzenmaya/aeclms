@@ -28,7 +28,7 @@ class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
   List<Map<String, dynamic>> _activeLoans = [];
   String? _selectedLoanId;
 
-final TextEditingController _netPayCtrl = TextEditingController(text: '5000000'); // Defaulting to 5M as per your excel
+  final TextEditingController _netPayCtrl = TextEditingController(text: '5000000'); // Defaulting to 5M as per your excel
 
   @override
   void dispose() {
@@ -210,8 +210,11 @@ final TextEditingController _netPayCtrl = TextEditingController(text: '5000000')
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
         backgroundColor: scheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        title: const Text('Reports Center', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+        foregroundColor: scheme.onSurface, // FIX: Forces icon and back button colors
+        title: Text(
+          'Reports Center', 
+          style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5, color: scheme.onSurface), // FIX: Explicit title color
+        ),
         centerTitle: true,
         elevation: 0,
       ),
@@ -224,7 +227,7 @@ final TextEditingController _netPayCtrl = TextEditingController(text: '5000000')
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
+              color: scheme.surface,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
               boxShadow: [
@@ -242,13 +245,13 @@ final TextEditingController _netPayCtrl = TextEditingController(text: '5000000')
                       child: const Icon(Icons.table_view_rounded, size: 28, color: Color(0xFFD9534F)),
                     ),
                     const SizedBox(width: 16),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Master Loan Schedule', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-                          SizedBox(height: 4),
-                          Text('Generate summary of all system loans', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                          Text('Master Loan Schedule', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: scheme.onSurface)), // FIX: Explicit text color
+                          const SizedBox(height: 4),
+                          Text('Generate summary of all system loans', style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.6))), // FIX: Adaptive grey
                         ],
                       ),
                     ),
@@ -262,43 +265,22 @@ final TextEditingController _netPayCtrl = TextEditingController(text: '5000000')
                 
                 DropdownButtonFormField<String>(
                   initialValue: _selectedStatus,
+                  dropdownColor: scheme.surface, // FIX: Light dropdown menu
                   decoration: InputDecoration(
                     labelText: 'Loan Status',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true, // FIX: Match other inputs
+                    fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3), // FIX: Match other inputs
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), // FIX: Match other inputs
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                  items: _statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  items: _statusOptions.map((s) => DropdownMenuItem(
+                    value: s, 
+                    child: Text(s, style: TextStyle(color: scheme.onSurface)), // FIX: Explicit text color
+                  )).toList(),
                   onChanged: (val) => setState(() => _selectedStatus = val!),
                 ),
                 const SizedBox(height: 16),
 
-                // Text('Applicant\'s Net Pay (UGX)', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary)),
-                // const SizedBox(height: 12),
-                // TextFormField(
-                //   controller: _netPayCtrl,
-                //   keyboardType: TextInputType.number,
-                //   decoration: InputDecoration(
-                //     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                //     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                //     prefixIcon: const Icon(Icons.payments_outlined),
-                //   ),
-                // ),
-                
-                // const SizedBox(height: 24),
-                
-                // TextFormField(
-                //   initialValue: _selectedMonth,
-                //   decoration: InputDecoration(
-                //     labelText: 'Report Month',
-                //     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                //     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                //     prefixIcon: const Icon(Icons.calendar_month_rounded),
-                //   ),
-                //   onChanged: (val) => _selectedMonth = val,
-                // ),
-                
-                // const SizedBox(height: 24),
-                
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
@@ -326,7 +308,7 @@ final TextEditingController _netPayCtrl = TextEditingController(text: '5000000')
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
+              color: scheme.surface,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
               boxShadow: [
@@ -344,13 +326,13 @@ final TextEditingController _netPayCtrl = TextEditingController(text: '5000000')
                       child: const Icon(Icons.person_search_rounded, size: 28, color: Color(0xFF4A90E2)),
                     ),
                     const SizedBox(width: 16),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Individual Amortization', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-                          SizedBox(height: 4),
-                          Text('Detailed payment schedule per user', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                          Text('Individual Amortization', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: scheme.onSurface)), // FIX: Explicit text color
+                          const SizedBox(height: 4),
+                          Text('Detailed payment schedule per user', style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.6))), // FIX: Adaptive grey
                         ],
                       ),
                     ),
@@ -368,14 +350,17 @@ final TextEditingController _netPayCtrl = TextEditingController(text: '5000000')
                         ? Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(12)),
-                            child: const Text('No active loans found in the system.', style: TextStyle(color: Colors.grey)),
+                            child: Text('No active loans found in the system.', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))), // FIX: Adaptive text
                           )
                         : DropdownButtonFormField<String>(
                             initialValue: _selectedLoanId,
-                            hint: const Text('Choose a loan...'),
-                            isExpanded: true, // Prevents text overflow errors
+                            hint: Text('Choose a loan...', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7))), // FIX: Adaptive hint
+                            dropdownColor: scheme.surface, // FIX: Light dropdown menu
+                            isExpanded: true, 
                             decoration: InputDecoration(
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              filled: true, // FIX: Match other inputs
+                              fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3), // FIX: Match other inputs
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), // FIX: Match other inputs
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                             ),
                             items: _activeLoans.map((loan) {
@@ -383,7 +368,7 @@ final TextEditingController _netPayCtrl = TextEditingController(text: '5000000')
                               final amount = loan['amount_requested']?.toString() ?? '0';
                               return DropdownMenuItem<String>(
                                 value: loan['id'].toString(),
-                                child: Text('$name (UGX $amount)', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                child: Text('$name (UGX $amount)', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface)), // FIX: Explicit text color
                               );
                             }).toList(),
                             onChanged: (val) => setState(() => _selectedLoanId = val),

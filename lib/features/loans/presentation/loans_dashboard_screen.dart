@@ -37,7 +37,6 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
   int _unreadCount = 0;
   
   bool get _isAdmin {
-    // TODO: Connect this to your actual user_roles check if necessary.
     return true; 
   }
 
@@ -145,10 +144,14 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
       appBar: AppBar(
         backgroundColor: scheme.surface,
         surfaceTintColor: Colors.transparent,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        title: const Text(
+        foregroundColor: scheme.onSurface,
+        title: Text(
           'Dashboard',
-          style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5),
+          style: TextStyle(
+            fontWeight: FontWeight.w700, 
+            letterSpacing: -0.5,
+            color: scheme.onSurface, // FIX: Explicit color
+          ),
         ),
         centerTitle: true,
         actions: [
@@ -169,7 +172,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
               label: Text('$_unreadCount'),
               isLabelVisible: _unreadCount > 0,
               backgroundColor: const Color(0xFFD9534F),
-              child: const Icon(Icons.notifications_rounded),
+              child: Icon(Icons.notifications_rounded, color: scheme.onSurface),
             ),
             tooltip: 'Notifications',
           ),
@@ -181,6 +184,7 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               color: scheme.primary,
+              backgroundColor: scheme.surface, // FIX: Explicit background
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.only(bottom: 40), 
@@ -197,11 +201,19 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
                       children: [
                         _StaggeredFadeIn(
                           index: 1,
-                          child: Text('Overview', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+                          child: Text(
+                            'Overview', 
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800, 
+                              letterSpacing: -0.5,
+                              color: scheme.onSurface, // FIX: Explicit color
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 16),
                         
-                        // The New Grid Layout
+                        // The Grid Layout
                         GridView.count(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
@@ -380,10 +392,6 @@ class _DashboardBox extends StatelessWidget {
   }
 }
 
-// -----------------------------------------------------------------------------
-// The Drawer and Hero components remain exactly the same as your previous code
-// -----------------------------------------------------------------------------
-
 class _DashboardDrawer extends StatelessWidget {
   final Profile profile;
   final AuthService authService;
@@ -432,12 +440,21 @@ class _DashboardDrawer extends StatelessWidget {
                 const SizedBox(height: 16),
                 Text(
                   profile.fullName,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                  style: TextStyle(
+                    fontSize: 20, 
+                    fontWeight: FontWeight.w800, 
+                    letterSpacing: -0.5,
+                    color: scheme.onSurface, // FIX: Explicit Color
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   email,
-                  style: TextStyle(fontSize: 14, color: scheme.onSurface.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    fontSize: 14, 
+                    color: scheme.onSurface.withValues(alpha: 0.6), 
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -515,8 +532,8 @@ class _DashboardDrawer extends StatelessWidget {
       builder: (context) => AlertDialog(
         backgroundColor: scheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Log Out?', style: TextStyle(fontWeight: FontWeight.w700)),
-        content: const Text('Are you sure you want to log out of your account?'),
+        title: Text('Log Out?', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface)),
+        content: Text('Are you sure you want to log out of your account?', style: TextStyle(color: scheme.onSurface)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -617,12 +634,21 @@ class _DashboardHero extends StatelessWidget {
               children: [
                 Text(
                   'Welcome back,',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(color: scheme.onSurface.withValues(alpha: 0.6), letterSpacing: 0.5),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: scheme.onSurface.withValues(alpha: 0.6), 
+                    letterSpacing: 0.5,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   profile.fullName,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800, 
+                    letterSpacing: -0.5,
+                    color: scheme.onSurface, // FIX: Explicit Color
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
