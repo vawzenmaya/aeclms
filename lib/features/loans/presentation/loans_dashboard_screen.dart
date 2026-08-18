@@ -2,13 +2,13 @@
 
 import 'package:aeclms/core/widgets/custom_loader.dart';
 import 'package:aeclms/features/admin/presentation/admin_dashboard_screen.dart';
+import 'package:aeclms/features/loans/presentation/terms_and_conditions_screen.dart';
 import 'package:flutter/material.dart';
 import '../../auth/data/auth_service.dart';
 import '../../notifications/data/notifications_repository.dart';
 import '../../notifications/presentation/notifications_screen.dart';
 import '../../profile/presentation/settings_screen.dart';
 import '../data/loan_repository.dart';
-import 'application_form_screen.dart';
 import 'loan_list_screen.dart';
 import 'repayments_screen.dart'; // FIX: Import the new screen
 
@@ -93,9 +93,10 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
   }
 
   Future<void> _startNewApplication() async {
+    // FIX: Route to the Terms and Conditions screen first
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ApplicationFormScreen(
+        builder: (_) => TermsAndConditionsScreen(
           repository: widget.repository,
           profile: widget.profile,
           currentUserEmail: widget.authService.currentUser?.email,

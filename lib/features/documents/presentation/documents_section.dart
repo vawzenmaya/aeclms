@@ -7,15 +7,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/widgets/custom_loader.dart';
 import '../data/documents_repository.dart';
 
-const _docTypes = {
-  'id_copy': 'ID Copy',
-  'valid_contract': 'Valid Contract',
-  'payslip': 'Most Recent Payslip',
-  'applicant_signed_declaration': 'Applicant Signed Declaration',
-  'guarantor_signed_declaration': 'Guarantor Signed Declaration',
-  'other': 'Other Document',
-};
-
 class DocumentsSection extends StatefulWidget {
   const DocumentsSection({
     super.key,
@@ -23,12 +14,14 @@ class DocumentsSection extends StatefulWidget {
     required this.loanId,
     required this.uploadedBy,
     required this.canUpload,
+    required this.hasGuarantor,
   });
 
   final DocumentsRepository repository;
   final String loanId;
   final String uploadedBy;
   final bool canUpload;
+  final bool hasGuarantor; 
 
   @override
   State<DocumentsSection> createState() => _DocumentsSectionState();
@@ -38,8 +31,18 @@ class _DocumentsSectionState extends State<DocumentsSection> {
   List<LoanDocument> _docs = [];
   bool _loading = true;
   bool _uploading = false;
-  String? _deletingId; // Tracks which document is currently being deleted
+  String? _deletingId; 
   String? _error;
+
+  // NEW: Dynamic required labels
+  Map<String, String> get _docTypes => {
+    'id_copy': 'ID Copy (Required)',
+    'valid_contract': 'Valid Contract (Required)',
+    'payslip': 'Most Recent Payslip (Required)',
+    'applicant_signed_declaration': 'Applicant Declaration (Required)',
+    if (widget.hasGuarantor) 'guarantor_signed_declaration': 'Guarantor Declaration (Required)',
+    'other': 'Other Document (Optional)',
+  };
 
   @override
   void initState() {
@@ -67,7 +70,6 @@ class _DocumentsSectionState extends State<DocumentsSection> {
   }
 
   Future<void> _pickAndUpload() async {
-    // 1. Filter out already uploaded document types (except 'other')
     final uploadedTypes = _docs.map((d) => d.docType).toSet();
     final availableTypes = _docTypes.entries
         .where((e) => e.key == 'other' || !uploadedTypes.contains(e.key))
@@ -80,7 +82,6 @@ class _DocumentsSectionState extends State<DocumentsSection> {
       return;
     }
 
-    // 2. Show premium selection dialog
     final docType = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -89,7 +90,6 @@ class _DocumentsSectionState extends State<DocumentsSection> {
     
     if (docType == null) return;
 
-    // 3. Pick the file
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
@@ -104,7 +104,6 @@ class _DocumentsSectionState extends State<DocumentsSection> {
       return;
     }
 
-    // 4. Upload
     setState(() {
       _uploading = true;
       _error = null;
@@ -159,12 +158,12 @@ class _DocumentsSectionState extends State<DocumentsSection> {
               child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFD9534F)),
             ),
             const SizedBox(width: 12),
-            const Text('Delete File?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+            Text('Delete File?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: scheme.onSurface)),
           ],
         ),
         content: Text(
           'Are you sure you want to remove "${doc.fileName}"? You will need to upload it again if it is required.',
-          style: const TextStyle(height: 1.4),
+          style: TextStyle(height: 1.4, color: scheme.onSurface),
         ),
         actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         actions: [
@@ -179,7 +178,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),
-            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
           ),
         ],
       ),
@@ -207,18 +206,17 @@ class _DocumentsSectionState extends State<DocumentsSection> {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      color: Colors.transparent, // Inherits styling from the parent container
+      color: Colors.transparent, 
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Attached Files', 
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: scheme.onSurface),
               ),
               if (widget.canUpload)
                 FilledButton.tonalIcon(
@@ -255,7 +253,6 @@ class _DocumentsSectionState extends State<DocumentsSection> {
             
           const SizedBox(height: 20),
           
-          // Content Area
           if (_loading)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 32),
@@ -300,7 +297,6 @@ class _DocumentsSectionState extends State<DocumentsSection> {
                   ),
                   child: Row(
                     children: [
-                      // File Icon
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -314,14 +310,13 @@ class _DocumentsSectionState extends State<DocumentsSection> {
                       ),
                       const SizedBox(width: 16),
                       
-                      // File Info
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               _docTypes[d.docType] ?? d.docType,
-                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: scheme.onSurface),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -334,7 +329,6 @@ class _DocumentsSectionState extends State<DocumentsSection> {
                         ),
                       ),
                       
-                      // Actions (View & Delete)
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -366,7 +360,6 @@ class _DocumentsSectionState extends State<DocumentsSection> {
   }
 }
 
-// Custom Bottom Sheet for selecting document type
 class _DocumentTypeSelector extends StatelessWidget {
   final List<MapEntry<String, String>> availableTypes;
 
@@ -389,7 +382,7 @@ class _DocumentTypeSelector extends StatelessWidget {
             const SizedBox(height: 12),
             Container(width: 40, height: 4, decoration: BoxDecoration(color: scheme.outlineVariant, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 24),
-            Text('Select Document Type', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+            Text('Select Document', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: scheme.onSurface)),
             const SizedBox(height: 8),
             Text('What kind of file are you uploading?', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 24),
@@ -422,7 +415,7 @@ class _DocumentTypeSelector extends StatelessWidget {
                           child: Icon(getIconForType(docType.key), color: scheme.onSurface),
                         ),
                         const SizedBox(width: 16),
-                        Expanded(child: Text(docType.value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+                        Expanded(child: Text(docType.value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: scheme.onSurface))),
                         Icon(Icons.chevron_right_rounded, color: scheme.onSurface.withValues(alpha: 0.3)),
                       ],
                     ),

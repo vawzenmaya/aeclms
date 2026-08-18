@@ -53,7 +53,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     });
     
     try {
-      // 1. Fetch core loan data first
       final loan = await widget.repository.fetchLoan(widget.loanId);
       
       Map<String, dynamic>? currentStage;
@@ -63,7 +62,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
       
       final stages = await widget.repository.fetchAllStages(loan['template_id'] as String);
       
-      // 2. Safely fetch actions in an isolated block so it doesn't crash the screen if it fails
       List<Map<String, dynamic>> actions = [];
       try {
         actions = await widget.repository.fetchStageActions(widget.loanId); 
@@ -233,7 +231,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                     ),
                   ),
 
-                  // DISBURSEMENT SETTINGS
                   if (isDisbursement && !isReject) ...[
                     const SizedBox(height: 32),
                     Text('Disbursement Details', style: TextStyle(fontWeight: FontWeight.w800, color: scheme.primary)),
@@ -276,9 +273,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       value: disbursementMode,
-                      // FIX: Force hint text to be readable
                       hint: Text('Select Mode', style: TextStyle(color: scheme.onSurface)),
-                      // FIX: Force the dropdown menu background to be light
                       dropdownColor: scheme.surface,
                       decoration: InputDecoration(
                         filled: true,
@@ -288,7 +283,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                       ),
                       items: ['RTGS', 'EFT', 'Cheque'].map((e) => DropdownMenuItem(
                         value: e, 
-                        // FIX: Force the text to be readable
                         child: Text(e, style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface))
                       )).toList(),
                       onChanged: (val) {
@@ -361,11 +355,10 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         ),
       ),
     );
-    _load(); // Refreshes the details when you return
+    _load();
   }
 
   Future<void> _goToDocumentUpload() async {
-    // Changed from pushReplacement to push, and added await
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => DocumentUploadScreen(
@@ -376,7 +369,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         ),
       ),
     );
-    _load(); // Refreshes the details when you return
+    _load(); 
   }
 
   @override
@@ -425,13 +418,12 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         if (snapshot.connectionState != ConnectionState.done) {
           return Scaffold(body: Center(child: CustomLoader(size: 56, color: Theme.of(context).colorScheme.primary)));
         }
-        return _buildLoaded(context); // This safely passes the data to your print buttons below!
+        return _buildLoaded(context);
       },
     );
   }
 
   Widget _buildLoaded(BuildContext context) {
-    // Here is where 'loan' is safely defined for the whole screen!
     final loan = _loan!;
     final scheme = Theme.of(context).colorScheme;
 
@@ -452,14 +444,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         ),
         centerTitle: true,
         actions: [
-          // Print Initial Application Form
           IconButton(
             icon: const Icon(Icons.print_outlined),
             tooltip: 'Print Application Form',
             onPressed: () => LoanFormPdfService.generateInitialApplicationForm(loan: loan),
           ),
-          
-          // Print Final Executed Form (Visible if approved/disbursed)
           if (['approved', 'active', 'cleared', 'disbursed', 'completed'].contains((loan['status'] as String? ?? '').toLowerCase()))
             IconButton(
               icon: const Icon(Icons.verified_rounded, color: Colors.green),
@@ -573,6 +562,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                           repository: _documentsRepo,
                           loanId: loan['id'] as String,
                           uploadedBy: widget.profile.id,
+                          hasGuarantor: loan['guarantor_id'] != null,
                           canUpload: loan['applicant_id'] == widget.profile.id &&
                               (loan['status'] == 'draft' || loan['status'] == 'returned_to_applicant'),
                         ),
@@ -611,6 +601,9 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     final dtiValue = loan['debt_to_income_ratio'] != null
         ? '${((loan['debt_to_income_ratio'] as num) * 100).toStringAsFixed(1)}%'
         : 'N/A';
+        
+    // Formatting numbers with commas
+    final currency = NumberFormat("#,##0", "en_US");
 
     return Row(
       children: [
@@ -618,15 +611,16 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           child: Column(
             children: [
               _MetricTile(
-                title: 'Interest Rate (Per Annum)',
+                title: 'Interest Rate',
                 value: '${loan['interest_rate']}%',
-                subtitle: loan['interest_method'] as String?,
+                subtitle: 'Per Annum${loan['interest_method'] != null ? ' • ${loan['interest_method']}' : ''}',
                 icon: Icons.percent_rounded,
               ),
               const SizedBox(height: 12),
               _MetricTile(
-                title: 'Processing Fee (0.005 of Principle)',
-                value: '${loan['processing_fee']}',
+                title: 'Processing Fee',
+                value: loan['processing_fee'] != null ? currency.format(loan['processing_fee']) : '0',
+                subtitle: '0.005 of Principal',
                 icon: Icons.receipt_long_rounded,
               ),
             ],
@@ -638,7 +632,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
             children: [
               _MetricTile(
                 title: 'Monthly Installment',
-                value: '${loan['installment_amount']}',
+                value: loan['installment_amount'] != null ? currency.format(loan['installment_amount']) : '0',
                 icon: Icons.calendar_month_rounded,
                 isHighlight: true,
               ),
@@ -833,8 +827,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                                         const SizedBox(width: 6),
                                         Expanded(
                                           child: Text(
-                                            'Paid via ${matchingAction['disbursement_mode']}' + 
-                                            (matchingAction['cheque_number'] != null ? ' (Chq: ${matchingAction['cheque_number']})' : ''),
+                                            'Paid via ${matchingAction['disbursement_mode']}${matchingAction['cheque_number'] != null ? ' (Chq: ${matchingAction['cheque_number']})' : ''}',
                                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: scheme.primary),
                                           ),
                                         ),

@@ -52,7 +52,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   late final _amountCtrl = TextEditingController(text: (widget.existingLoan?['amount_requested'] as num?)?.toInt().toString() ?? '');
   late final _amountInWordsCtrl = TextEditingController(text: widget.existingLoan?['amount_in_words'] as String? ?? '');
   
-  // NEW: Net Pay and Bank Details are now in Step 1 (Applicant Profile)
   late final _netPayCtrl = TextEditingController(text: (widget.existingLoan?['net_pay'] as num?)?.toInt().toString() ?? '');
   late final _netPayInWordsCtrl = TextEditingController(text: _calculateWordsInitial((widget.existingLoan?['net_pay'] as num?)?.toDouble()));
   late final _bankHolderCtrl = TextEditingController(text: widget.existingLoan?['bank_account_holder_name'] as String? ?? widget.profile.fullName);
@@ -64,14 +63,12 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
 
   late final _purposeCtrl = TextEditingController(text: widget.existingLoan?['purpose'] as String? ?? '');
   
-  // NEW: Duration and Dates for Step 2
   late final _durationMonthsCtrl = TextEditingController(text: (widget.existingLoan?['duration_months'] as num?)?.toInt().toString() ?? '');
   late DateTime? _initialRepaymentDate = widget.existingLoan?['initial_repayment_date'] != null
       ? DateTime.tryParse(widget.existingLoan!['initial_repayment_date'] as String)
       : null;
   DateTime? _expectedEndDate;
 
-  // NEW: Collateral Fields for Step 3
   late final _savingsBalanceCtrl = TextEditingController(text: (widget.existingLoan?['savings_balance'] as num?)?.toInt().toString() ?? '');
   late final _securityDescCtrl = TextEditingController(text: widget.existingLoan?['security_description'] as String? ?? '');
   late final _securityValueCtrl = TextEditingController(text: (widget.existingLoan?['security_estimated_value'] as num?)?.toInt().toString() ?? '');
@@ -79,6 +76,11 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
 
   LoanSettings _settings = LoanSettings.fallback;
   List<GuarantorOption> _guarantors = [];
+  
+  // TOP-UP STATE
+  List<Map<String, dynamic>> _eligibleTopUpLoans = [];
+  String? _selectedTopUpLoanId;
+
   bool _loadingContext = true;
   bool _saving = false;
   String? _error;
@@ -116,11 +118,20 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         communityId: communityId,
         excludeProfileId: widget.profile.id,
       ),
+      // NEW: Fetch active loans to allow user to pick which one to Top-Up
+      Supabase.instance.client
+          .from('loans')
+          .select('id, amount_requested, created_at, loan_category')
+          .eq('applicant_id', widget.profile.id)
+          .inFilter('status', ['approved', 'active', 'disbursed', 'running'])
+          .order('created_at', ascending: false)
     ]);
+    
     if (!mounted) return;
     setState(() {
       _settings = results[0] as LoanSettings;
       _guarantors = results[1] as List<GuarantorOption>;
+      _eligibleTopUpLoans = List<Map<String, dynamic>>.from(results[2] as List);
       _loadingContext = false;
     });
   }
@@ -137,7 +148,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     setState(() {}); 
   }
 
-  // Safe method to add months to a date, avoiding skipping over short months
   DateTime _addMonthsToDate(DateTime date, int monthsToAdd) {
     return DateTime.utc(date.year, date.month + monthsToAdd, date.day);
   }
@@ -166,7 +176,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     if (picked != null) {
       setState(() {
         _initialRepaymentDate = picked;
-        _calculateExpectedEndDate(); // Recalculate end date whenever start date changes
+        _calculateExpectedEndDate(); 
         _error = null;
       });
     }
@@ -201,6 +211,10 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     }
     if (_currentStep == 2) {
       isValid = _step2Key.currentState?.validate() ?? true;
+      if (_loanType == 'topup' && _selectedTopUpLoanId == null) {
+         setState(() => _error = 'Please select the existing loan you wish to top-up.');
+         return;
+      }
       if (_initialRepaymentDate == null) {
         setState(() => _error = 'Please select an initial repayment date.');
         return;
@@ -249,7 +263,13 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     });
 
     try {
-      // 1. Save the draft to the database
+      String currentPurpose = _purposeCtrl.text.trim();
+      if (_loanType == 'topup' && _selectedTopUpLoanId != null && !currentPurpose.contains('[Top-Up:')) {
+        final topUpLoan = _eligibleTopUpLoans.firstWhere((l) => l['id'] == _selectedTopUpLoanId);
+        final formattedAmount = NumberFormat("#,##0", "en_US").format(topUpLoan['amount_requested']);
+        currentPurpose = '[Top-Up: Consolidating previous UGX $formattedAmount loan]\n$currentPurpose';
+      }
+
       final loanId = await widget.repository.saveDraft(
         existingLoanId: widget.existingLoan?['id'] as String?,
         applicantId: widget.profile.id,
@@ -263,7 +283,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         employeeNumber: _employeeNumberCtrl.text.trim().isEmpty ? null : _employeeNumberCtrl.text.trim(),
         amountRequested: double.parse(_amountCtrl.text.replaceAll(',', '')),
         amountInWords: _amountInWordsCtrl.text,
-        purpose: _purposeCtrl.text.trim(),
+        purpose: currentPurpose,
         savingsBalance: double.tryParse(_savingsBalanceCtrl.text.replaceAll(',', '')),
         securityDescription: _securityDescCtrl.text.trim().isEmpty ? null : _securityDescCtrl.text.trim(),
         securityEstimatedValue: double.tryParse(_securityValueCtrl.text.replaceAll(',', '')),
@@ -280,11 +300,8 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         bankDetailsConfirmed: _bankDetailsConfirmed,
       );
 
-      // --- NEW: FETCH AUTHORITATIVE DATA & GENERATE PDF ---
       try {
-        // Fetch the newly created loan so we get the exact DB-calculated rates
         final authoritativeLoan = await widget.repository.fetchLoan(loanId);
-        
         final dbInterestRate = (authoritativeLoan['interest_rate'] as num?)?.toDouble() ?? 8.0;
         final dbInstallment = (authoritativeLoan['installment_amount'] as num?)?.toDouble() ?? _preview.installmentAmount ?? 0.0;
 
@@ -292,16 +309,15 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           loanId: loanId,
           applicantName: _fullNameCtrl.text.trim(),
           loanAmount: double.parse(_amountCtrl.text.replaceAll(',', '')),
-          interestRate: dbInterestRate, // Using the authoritative DB rate
+          interestRate: dbInterestRate, 
           periodMonths: int.parse(_durationMonthsCtrl.text),
-          monthlyInstallment: dbInstallment, // Using the authoritative DB installment
+          monthlyInstallment: dbInstallment, 
           netPay: double.parse(_netPayCtrl.text.replaceAll(',', '')),
           uploadedBy: widget.profile.id,
         );
       } catch (pdfError) {
         debugPrint('Failed to generate PDF schedule: $pdfError');
       }
-      // ----------------------------------------------------
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -310,7 +326,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-      Navigator.of(context).push(
+      Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => DocumentUploadScreen(
             loanRepository: widget.repository,
@@ -429,14 +445,14 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           children: [
             Expanded(
               child: _SelectionCard(
-                title: 'Long Term Loan', subtitle: ' ', icon: Icons.calendar_month_rounded,
+                title: 'Long Term Loan', subtitle: 'Standard timeline', icon: Icons.calendar_month_rounded,
                 isSelected: _loanCategory == 'normal', onTap: () => setState(() => _loanCategory = 'normal'),
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _SelectionCard(
-                title: 'Emergency', subtitle: '', icon: Icons.bolt_rounded,
+                title: 'Emergency', subtitle: 'Quick flat rate', icon: Icons.bolt_rounded,
                 isSelected: _loanCategory == 'emergency', onTap: () => setState(() { _loanCategory = 'emergency'; _loanType = 'new'; }),
               ),
             ),
@@ -468,14 +484,14 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           children: [
             Expanded(
               child: _SelectionCard(
-                title: 'Member', subtitle: ' ', icon: Icons.verified_user_rounded,
+                title: 'Member', subtitle: 'Registered AEC', icon: Icons.verified_user_rounded,
                 isSelected: _applicantCategory == 'member', onTap: () => setState(() { _applicantCategory = 'member'; _employeeNumberCtrl.text = widget.profile.employeeNumber ?? ''; }),
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _SelectionCard(
-                title: 'Non-Member', subtitle: ' ', icon: Icons.person_outline_rounded,
+                title: 'Non-Member', subtitle: 'External entity', icon: Icons.person_outline_rounded,
                 isSelected: _applicantCategory == 'non_member', onTap: () => setState(() => _applicantCategory = 'non_member'),
               ),
             ),
@@ -515,7 +531,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
               padding: const EdgeInsets.only(bottom: 20),
               child: DropdownButtonFormField<String>(
                 initialValue: _bankName,
-                // FIX: Force the dropdown menu background to be light
                 dropdownColor: Theme.of(context).colorScheme.surface, 
                 decoration: InputDecoration(
                   labelText: 'Bank Name',
@@ -524,11 +539,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
                   filled: true,
                   fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 ),
-                items: _ugandanBanks.map((bank) => DropdownMenuItem(
-                  value: bank, 
-                  // FIX: Force the text to be readable (onSurface)
-                  child: Text(bank, style: TextStyle(fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurface))
-                )).toList(),
+                items: _ugandanBanks.map((bank) => DropdownMenuItem(value: bank, child: Text(bank, style: TextStyle(fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurface)))).toList(),
                 onChanged: (v) => setState(() { _bankName = v; _error = null; }),
                 validator: (v) => v == null ? 'Please select your bank' : null,
               ),
@@ -568,7 +579,73 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         children: [
           const _StepHeader(title: 'Loan Particulars', subtitle: 'How much do you need?', icon: Icons.request_quote_rounded),
           _card([
-            _field(_amountCtrl, 'Amount Applied For', icon: Icons.attach_money_rounded, keyboardType: TextInputType.number, formatters: [FilteringTextInputFormatter.digitsOnly], validator: _requiredNumber),
+            
+            // NEW TOP-UP DROPDOWN LOGIC
+            if (_loanType == 'topup') ...[
+              if (_eligibleTopUpLoans.isEmpty)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD9534F).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFD9534F).withValues(alpha: 0.3)),
+                  ),
+                  child: const Text(
+                    'You do not have any active loans eligible for a top-up.',
+                    style: TextStyle(color: Color(0xFFD9534F), fontWeight: FontWeight.w600, height: 1.4),
+                  ),
+                )
+              else ...[
+                DropdownButtonFormField<String>(
+                  value: _selectedTopUpLoanId,
+                  dropdownColor: Theme.of(context).colorScheme.surface,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: 'Select Existing Loan to Top-up',
+                    prefixIcon: Icon(Icons.upgrade_rounded, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                    filled: true,
+                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  ),
+                  items: _eligibleTopUpLoans.map((l) {
+                    final date = DateFormat('MMM yyyy').format(DateTime.parse(l['created_at']));
+                    final amount = NumberFormat("#,##0", "en_US").format(l['amount_requested']);
+                    return DropdownMenuItem<String>(
+                      value: l['id'],
+                      child: Text('UGX $amount ($date)', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w600)),
+                    );
+                  }).toList(),
+                  onChanged: (v) => setState(() { _selectedTopUpLoanId = v; _error = null; }),
+                  validator: (v) => v == null ? 'Required for top-up applications' : null,
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Enter the NEW TOTAL amount you need below. The outstanding balance of your selected loan will be carried over and deducted during final disbursement.',
+                          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.primary, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+
+            _field(_amountCtrl, _loanType == 'topup' ? 'New Total Loan Amount Request' : 'Amount Applied For', icon: Icons.attach_money_rounded, keyboardType: TextInputType.number, formatters: [FilteringTextInputFormatter.digitsOnly], validator: _requiredNumber),
             _field(_amountInWordsCtrl, 'Amount in Words (Auto)', icon: Icons.text_fields_rounded, maxLines: 2, readOnly: true),
             _field(_purposeCtrl, 'Purpose of the Loan', icon: Icons.edit_note_rounded, maxLength: 250, validator: _required),
             
@@ -645,7 +722,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           _card([
             DropdownButtonFormField<String>(
               initialValue: _guarantorId,
-              // FIX: Force the dropdown menu background to be light
               dropdownColor: Theme.of(context).colorScheme.surface,
               decoration: InputDecoration(
                 labelText: 'Mandatory Guarantor',
@@ -654,11 +730,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
               ),
-              items: _guarantors.map((g) => DropdownMenuItem(
-                value: g.id, 
-                // FIX: Force the text to be readable
-                child: Text(g.fullName, style: TextStyle(color: Theme.of(context).colorScheme.onSurface))
-              )).toList(),
+              items: _guarantors.map((g) => DropdownMenuItem(value: g.id, child: Text(g.fullName, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))).toList(),
               onChanged: (v) => setState(() { _guarantorId = v; _error = null; }),
               validator: (v) => v == null ? 'A community guarantor is required' : null,
             ),
@@ -766,7 +838,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           labelText: label, 
           prefixIcon: icon != null ? Icon(icon, size: 22, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)) : null, 
           alignLabelWithHint: maxLines > 1,
-          // FIX: Explicitly forcing the background color of the input field
           filled: true,
           fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
@@ -846,7 +917,6 @@ class _DatePickerField extends StatelessWidget {
           decoration: InputDecoration(
             labelText: label, 
             prefixIcon: Icon(Icons.calendar_month_outlined, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
-            // FIX: Added background color to match the text fields
             filled: true,
             fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
@@ -897,7 +967,7 @@ class _PremiumRepaymentSummary extends StatelessWidget {
                 _SummaryRow('Estimated Interest', '+ UGX ${format(interestAmount)}'), const SizedBox(height: 16),
                 _SummaryRow('Processing Fee', 'UGX ${format(preview.processingFee)}', isSub: true),
                 const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1)),
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Total Loan Amount', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)), Text('UGX ${format(totalRepayment)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18))]),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Total Repayment', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)), Text('UGX ${format(totalRepayment)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18))]),
               ],
             ),
           ),

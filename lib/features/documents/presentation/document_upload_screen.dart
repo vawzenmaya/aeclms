@@ -40,8 +40,23 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
 
   Future<void> _submit() async {
     final docs = await _documentsRepo.fetchDocuments(widget.loanId);
-    if (docs.isEmpty) {
-      setState(() => _error = 'Please upload at least one supporting document (e.g., ID or Payslip) to proceed.');
+    final uploadedTypes = docs.map((d) => d.docType).toSet();
+    
+    // DEFINING THE STRICT REQUIREMENTS
+    final requiredDocs = {
+      'id_copy': 'ID Copy',
+      'valid_contract': 'Valid Contract',
+      'payslip': 'Payslip',
+      'applicant_signed_declaration': 'Applicant Declaration',
+      if (widget.hasGuarantor) 'guarantor_signed_declaration': 'Guarantor Declaration',
+    };
+
+    final missingTypes = requiredDocs.keys.where((k) => !uploadedTypes.contains(k)).toList();
+
+    // BLOCKING SUBMISSION IF ANY ARE MISSING
+    if (missingTypes.isNotEmpty) {
+      final missingNames = missingTypes.map((k) => requiredDocs[k]).join(', ');
+      setState(() => _error = 'Missing mandatory documents: $missingNames. Please upload them to proceed.');
       return;
     }
 
@@ -194,6 +209,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                           repository: _documentsRepo,
                           loanId: widget.loanId,
                           uploadedBy: widget.profile.id,
+                          hasGuarantor: widget.hasGuarantor,
                           canUpload: true,
                         ),
                       ),

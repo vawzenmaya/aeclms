@@ -144,32 +144,85 @@ class _RepaymentsScreenState extends State<RepaymentsScreen> {
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          // STYLISH PREMIUM LOAN SELECTOR
           Text('Select Account Ledger', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary, fontSize: 13)),
           const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedLoanId,
-            dropdownColor: scheme.surface,
-            isExpanded: true,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          Container(
+            decoration: BoxDecoration(
+              color: scheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                )
+              ],
             ),
-            items: _userLoans.map((l) {
-              final date = DateFormat('MMM yyyy').format(DateTime.parse(l['created_at']));
-              final cat = l['loan_category'] == 'emergency' ? 'Emergency' : 'Normal';
-              return DropdownMenuItem<String>(
-                value: l['id'],
-                child: Text('$cat Loan — UGX ${currency.format(l['amount_requested'])} ($date)', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface)),
-              );
-            }).toList(),
-            onChanged: (val) {
-              if (val != null) {
-                setState(() => _selectedLoanId = val);
-                _fetchLoanRepaymentsDetails();
-              }
-            },
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedLoanId,
+                isExpanded: true,
+                dropdownColor: scheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                icon: Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: Icon(Icons.unfold_more_rounded, color: scheme.onSurface.withValues(alpha: 0.5)),
+                ),
+                // 1. HOW IT LOOKS WHEN THE MENU IS OPEN
+                items: _userLoans.map((l) {
+                  final date = DateFormat('MMM dd, yyyy').format(DateTime.parse(l['created_at']));
+                  final cat = l['loan_category'] == 'emergency' ? 'Emergency' : 'Normal';
+                  return DropdownMenuItem<String>(
+                    value: l['id'],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('$cat Loan — UGX ${currency.format(l['amount_requested'])}', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface, fontSize: 15)),
+                          const SizedBox(height: 2),
+                          Text('Applied: $date', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5), fontSize: 12, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+                // 2. HOW IT LOOKS WHEN CLOSED (Selected State)
+                selectedItemBuilder: (BuildContext context) {
+                  return _userLoans.map<Widget>((l) {
+                    final cat = l['loan_category'] == 'emergency' ? 'Emergency' : 'Normal';
+                    return Row(
+                      children: [
+                        const SizedBox(width: 16),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: scheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                          child: Icon(Icons.account_balance_wallet_rounded, size: 18, color: scheme.primary),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '$cat Loan — UGX ${currency.format(l['amount_requested'])}',
+                            style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface, fontSize: 15),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList();
+                },
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _selectedLoanId = val);
+                    _fetchLoanRepaymentsDetails();
+                  }
+                },
+              ),
+            ),
           ),
           const SizedBox(height: 24),
           
