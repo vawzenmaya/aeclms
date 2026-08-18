@@ -51,7 +51,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     try {
-      // Direct update to the profiles table. RLS ensures users can only update their own row.
       await Supabase.instance.client.from('profiles').update({
         'full_name': _nameCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
@@ -68,7 +67,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       );
       
-      Navigator.of(context).pop(); // Return to settings screen
+      // Return true to signal that a refresh is needed
+      Navigator.of(context).pop(true); 
     } on PostgrestException catch (e) {
       setState(() => _error = e.message);
     } catch (e) {
@@ -102,7 +102,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Avatar Hero
                     _StaggeredFadeIn(
                       index: 0,
                       child: Center(
@@ -139,7 +138,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                     const SizedBox(height: 40),
 
-                    // Inputs Card
                     _StaggeredFadeIn(
                       index: 1,
                       child: Container(
@@ -190,7 +188,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
           ),
 
-          // Bottom Action Dock
           _StaggeredFadeIn(
             index: 2,
             child: Container(
@@ -276,7 +273,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 }
 
-/// A lightweight wrapper to provide a staggered fade & slide entrance animation.
 class _StaggeredFadeIn extends StatefulWidget {
   final Widget child;
   final int index;

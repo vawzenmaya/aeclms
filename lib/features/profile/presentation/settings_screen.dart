@@ -3,6 +3,7 @@
 import 'package:aeclms/features/profile/presentation/change_password_screen.dart';
 import 'package:aeclms/features/profile/presentation/edit_profile_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Needed for the profile refresh
 
 import '../../../../main.dart';
 import '../../auth/data/auth_service.dart';
@@ -24,6 +25,34 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   // Local state for the push notifications toggle
   bool _pushNotificationsEnabled = true;
+  
+  // Local state to hold the dynamic name
+  late String _fullName;
+
+  @override
+  void initState() {
+    super.initState();
+    _fullName = widget.profile.fullName;
+  }
+
+  // Fetches the newly updated name from the database without restarting the app
+  Future<void> _refreshProfile() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('profiles')
+          .select('full_name')
+          .eq('id', widget.profile.id)
+          .single();
+          
+      if (mounted) {
+        setState(() {
+          _fullName = response['full_name'] as String;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to refresh profile name: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,14 +104,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       radius: 40,
                       backgroundColor: scheme.primary.withValues(alpha: 0.2),
                       child: Text(
-                        widget.profile.fullName.isNotEmpty ? widget.profile.fullName[0].toUpperCase() : '?',
+                        _fullName.isNotEmpty ? _fullName[0].toUpperCase() : '?',
                         style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: scheme.primary),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    widget.profile.fullName,
+                    _fullName,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5),
                   ),
                   const SizedBox(height: 4),
@@ -114,12 +143,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.person_outline_rounded,
                   title: 'Edit Profile',
                   subtitle: 'Update your name, phone, and employee ID',
-                  onTap: () {
-                    Navigator.of(context).push(
+                  onTap: () async {
+                    // Await the result from EditProfileScreen
+                    final didUpdate = await Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => EditProfileScreen(profile: widget.profile),
                       ),
                     );
+                    
+                    // If it returned true, fetch the new data
+                    if (didUpdate == true) {
+                      _refreshProfile();
+                    }
                   },
                 ),
                 _SettingsTile(
@@ -158,7 +193,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     activeThumbColor: scheme.primary,
                   ),
                   onTap: () {
-                    // Tapping the row toggles the switch
                     setState(() => _pushNotificationsEnabled = !_pushNotificationsEnabled);
                   },
                 ),
@@ -169,13 +203,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   trailing: Switch(
                     value: isDarkMode,
                     onChanged: (val) {
-                      // Instantly updates the app theme globally!
                       appThemeNotifier.value = val ? ThemeMode.dark : ThemeMode.light;
                     },
                     activeThumbColor: scheme.primary,
                   ),
                   onTap: () {
-                    // Tapping the row toggles the switch globally
                     appThemeNotifier.value = !isDarkMode ? ThemeMode.dark : ThemeMode.light;
                   },
                 ),
@@ -381,7 +413,6 @@ class _SettingsTile extends StatelessWidget {
   }
 }
 
-/// A lightweight wrapper to provide a staggered fade & slide entrance animation.
 class _StaggeredFadeIn extends StatefulWidget {
   final Widget child;
   final int index;
