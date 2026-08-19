@@ -101,11 +101,21 @@ class _AdminAllLoansScreenState extends State<AdminAllLoansScreen> {
       final loansToPrint = _filteredLoans;
       final List<Map<String, dynamic>> formattedData = [];
 
+      double totalInterest = 0.0;
+      double totalFees = 0.0;
+
       for (var loan in loansToPrint) {
         final repayments = (loan['repayments'] as List?) ?? [];
         final amountRequested = (loan['amount_requested'] as num?)?.toDouble() ?? 0.0;
         final totalMonths = loan['duration_months'] as int? ?? 0;
         final monthsPaid = repayments.length;
+
+        // Calculate quick metrics for this view
+        totalFees += (amountRequested * 0.005);
+        final schedule = (loan['loan_amortization_schedule'] as List?) ?? [];
+        for (var sched in schedule) {
+          totalInterest += (sched['interest'] as num?)?.toDouble() ?? 0.0;
+        }
 
         formattedData.add({
           'name': loan['profiles']?['full_name'] ?? 'Unknown Applicant',
@@ -128,6 +138,10 @@ class _AdminAllLoansScreenState extends State<AdminAllLoansScreen> {
         reportMonth: DateFormat('MMMM yyyy').format(DateTime.now()),
         loans: formattedData,
         filterStatus: filterLabel,
+        startDate: null, // No date range constraint from quick print
+        endDate: null,
+        totalInterestEarned: totalInterest,
+        totalProcessingFeesEarned: totalFees,
       );
     } catch (e) {
       if (mounted) {

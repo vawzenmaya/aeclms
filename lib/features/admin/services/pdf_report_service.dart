@@ -1,9 +1,14 @@
 // lib/features/admin/services/pdf_report_service.dart
 
+// ignore: unused_import
+import 'dart:convert';
+import 'dart:io';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
 
 class PdfReportService {
   static const _primaryColor = PdfColor.fromInt(0xFF1E3A8A); // Deep Corporate Blue
@@ -11,11 +16,15 @@ class PdfReportService {
   static const _greyLight = PdfColor.fromInt(0xFFF3F4F6);
   static const _textDark = PdfColor.fromInt(0xFF1F2937);
 
-  /// Generates the Master Loan Schedule (All Loans, Cleared, or Running)
+  /// Generates the Master Loan Schedule (All Loans, Cleared, or Running) with Financial Analytics
   static Future<void> generateMasterSchedule({
     required String reportMonth,
     required List<Map<String, dynamic>> loans,
     required String filterStatus, // 'All', 'Cleared', 'Running'
+    required DateTime? startDate,
+    required DateTime? endDate,
+    required double totalInterestEarned,
+    required double totalProcessingFeesEarned,
   }) async {
     final pdf = pw.Document();
     final currency = NumberFormat("#,##0", "en_US");
@@ -23,6 +32,10 @@ class PdfReportService {
     // Calculate Totals for the Summary Box
     final double totalAmount = loans.fold(0.0, (sum, l) => sum + (l['approved_amount'] as num));
     final double totalInstallments = loans.fold(0.0, (sum, l) => sum + (l['monthly_installment'] as num));
+
+    final dateRangeStr = (startDate != null && endDate != null)
+        ? '${DateFormat('dd MMM yyyy').format(startDate)} to ${DateFormat('dd MMM yyyy').format(endDate)}'
+        : reportMonth;
 
     pdf.addPage(
       pw.MultiPage(
@@ -43,7 +56,7 @@ class PdfReportService {
                   ),
                   pw.SizedBox(height: 4),
                   pw.Text(
-                    'MASTER LOAN SCHEDULE',
+                    'MASTER LOAN SCHEDULE & FINANCIAL REPORT',
                     style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: _textDark, letterSpacing: 1.2),
                   ),
                 ],
@@ -52,7 +65,7 @@ class PdfReportService {
                 crossAxisAlignment: pw.CrossAxisAlignment.end,
                 children: [
                   pw.Text(
-                    'Report Month: $reportMonth',
+                    'Period: $dateRangeStr',
                     style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: _primaryColor),
                   ),
                   pw.Text(
@@ -69,11 +82,31 @@ class PdfReportService {
             ],
           ),
 
-          pw.SizedBox(height: 20),
+          pw.SizedBox(height: 16),
+
+          // FINANCIAL PERFORMANCE METRICS BOX (Fees & Interest Earned)
+          pw.Container(
+            padding: const pw.EdgeInsets.all(14),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.green50, // FIXED: Changed from emerald50 to green50
+              borderRadius: pw.BorderRadius.circular(8),
+              border: pw.Border.all(color: _accentColor),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+              children: [
+                _buildSummaryItem('Interest Earned (Period)', 'UGX ${currency.format(totalInterestEarned)}', isAccent: true),
+                _buildSummaryItem('Processing Fees Earned', 'UGX ${currency.format(totalProcessingFeesEarned)}', isAccent: true),
+                _buildSummaryItem('Total Portfolio Disbursed', 'UGX ${currency.format(totalAmount)}'),
+              ],
+            ),
+          ),
+
+          pw.SizedBox(height: 16),
 
           // SUMMARY METRICS BOX
           pw.Container(
-            padding: const pw.EdgeInsets.all(16),
+            padding: const pw.EdgeInsets.all(12),
             decoration: pw.BoxDecoration(
               color: _greyLight,
               borderRadius: pw.BorderRadius.circular(8),
@@ -89,7 +122,7 @@ class PdfReportService {
             ),
           ),
 
-          pw.SizedBox(height: 24),
+          pw.SizedBox(height: 20),
 
           // DATA TABLE
           pw.TableHelper.fromTextArray(
@@ -97,14 +130,14 @@ class PdfReportService {
             headerDecoration: const pw.BoxDecoration(color: _primaryColor),
             cellStyle: const pw.TextStyle(fontSize: 9, color: _textDark),
             cellAlignments: {
-              0: pw.Alignment.centerLeft,  // No.
-              1: pw.Alignment.centerLeft,  // Name
-              2: pw.Alignment.centerRight, // Approved Amount
-              3: pw.Alignment.centerRight, // Monthly Installment
-              4: pw.Alignment.center,      // Total Months
-              5: pw.Alignment.center,      // Remaining Months
-              6: pw.Alignment.center,      // Clearance Month
-              7: pw.Alignment.center,      // Status
+              0: pw.Alignment.centerLeft,  
+              1: pw.Alignment.centerLeft,  
+              2: pw.Alignment.centerRight, 
+              3: pw.Alignment.centerRight, 
+              4: pw.Alignment.center,      
+              5: pw.Alignment.center,      
+              6: pw.Alignment.center,      
+              7: pw.Alignment.center,      
             },
             oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
             headers: [
@@ -131,7 +164,6 @@ class PdfReportService {
                   l['status'] ?? 'Running',
                 ];
               }),
-              // Append Totals Row at the bottom of the table
               [
                 '',
                 'GRAND TOTAL',
@@ -150,8 +182,60 @@ class PdfReportService {
 
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
-      name: 'AEC_Loan_Schedule_${reportMonth.replaceAll(' ', '_')}.pdf',
+      name: 'AEC_Loan_Schedule.pdf',
     );
+  }
+
+  /// Exports the Master Schedule directly to an Excel-compatible CSV file
+  static Future<void> exportMasterScheduleToExcel({
+    required List<Map<String, dynamic>> loans,
+    required double totalInterestEarned,
+    required double totalProcessingFeesEarned,
+  }) async {
+    List<List<dynamic>> rows = [];
+
+    // Header Meta Rows
+    rows.add(['ATOMIC ENERGY COUNCIL INVESTMENT CLUB']);
+    rows.add(['MASTER LOAN SCHEDULE & FINANCIAL REPORT']);
+    rows.add(['Generated On', DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())]);
+    rows.add(['Total Interest Earned (Period)', totalInterestEarned]);
+    rows.add(['Total Processing Fees Earned', totalProcessingFeesEarned]);
+    rows.add([]); // Empty row separator
+
+    // Table Headers
+    rows.add([
+      'No.',
+      'Applicant Name',
+      'Approved Amount (UGX)',
+      'Monthly Installment (UGX)',
+      'Total Months',
+      'Remaining Months',
+      'Clearance Month',
+      'Status',
+    ]);
+
+    // Data Rows
+    for (int i = 0; i < loans.length; i++) {
+      final l = loans[i];
+      rows.add([
+        i + 1,
+        l['name'] ?? 'Unknown',
+        l['approved_amount'] ?? 0,
+        l['monthly_installment'] ?? 0,
+        l['total_months'] ?? 0,
+        l['remaining_months'] ?? 0,
+        l['clearance_month'] ?? '-',
+        l['status'] ?? 'Running',
+      ]);
+    }
+
+    String csvData = const ListToCsvConverter().convert(rows);
+
+    final output = await getTemporaryDirectory();
+    final file = File('${output.path}/AEC_Loan_Report_${DateTime.now().millisecondsSinceEpoch}.csv');
+    await file.writeAsString(csvData);
+
+    await OpenFile.open(file.path);
   }
 
   /// Generates the Individual Amortization Schedule
@@ -167,13 +251,11 @@ class PdfReportService {
     final pdf = pw.Document();
     final currency = NumberFormat("#,##0", "en_US");
 
-    // CALCULATIONS
     double ratio = netPay > 0 ? (monthlyInstallment / netPay) * 100 : 0.0;
     double totalInstallment = scheduleRows.fold(0, (sum, row) => sum + row['installment']);
     double totalInterest = scheduleRows.fold(0, (sum, row) => sum + row['interest']);
     double totalPrincipal = scheduleRows.fold(0, (sum, row) => sum + row['principal']);
 
-    // Build Table Data
     List<List<String>> tableData = List<List<String>>.generate(
       scheduleRows.length,
       (index) {
@@ -188,7 +270,6 @@ class PdfReportService {
       },
     );
 
-    // Append the Totals Row at the bottom
     tableData.add([
       'TOTAL',
       currency.format(totalInstallment),
@@ -202,7 +283,6 @@ class PdfReportService {
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
         build: (context) => [
-          // HEADER SECTION
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
@@ -224,7 +304,6 @@ class PdfReportService {
           ),
           pw.SizedBox(height: 24),
 
-          // LOAN SUMMARY BOX
           pw.Container(
             padding: const pw.EdgeInsets.all(16),
             decoration: pw.BoxDecoration(
@@ -271,7 +350,6 @@ class PdfReportService {
 
           pw.SizedBox(height: 24),
 
-          // AMORTIZATION TABLE
           pw.TableHelper.fromTextArray(
             headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 10),
             headerDecoration: const pw.BoxDecoration(color: _primaryColor),
@@ -296,7 +374,6 @@ class PdfReportService {
           
           pw.SizedBox(height: 40),
           
-          // SIGNATURE BLOCK
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
@@ -328,14 +405,13 @@ class PdfReportService {
     );
   }
 
-  // Helpers for formatting the header texts
-  static pw.Widget _buildSummaryItem(String label, String value) {
+  static pw.Widget _buildSummaryItem(String label, String value, {bool isAccent = false}) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
         pw.Text(label, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
         pw.SizedBox(height: 4),
-        pw.Text(value, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
+        pw.Text(value, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: isAccent ? _accentColor : _primaryColor)),
       ],
     );
   }
@@ -349,5 +425,23 @@ class PdfReportService {
         pw.Text(value, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: _textDark)),
       ],
     );
+  }
+}
+
+// Simple internal helper class to handle CSV formatting cleanly without external dependencies
+class ListToCsvConverter {
+  const ListToCsvConverter();
+
+  String convert(List<List<dynamic>> rows) {
+    return rows.map((row) {
+      return row.map((cell) {
+        if (cell == null) return '';
+        String text = cell.toString();
+        if (text.contains(',') || text.contains('"') || text.contains('\n')) {
+          return '"${text.replaceAll('"', '""')}"';
+        }
+        return text;
+      }).join(',');
+    }).join('\n');
   }
 }
