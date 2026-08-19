@@ -141,187 +141,193 @@ class _RepaymentsScreenState extends State<RepaymentsScreen> {
       onRefresh: _fetchLoanRepaymentsDetails,
       color: scheme.primary,
       backgroundColor: scheme.surface,
-      child: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          // STYLISH PREMIUM LOAN SELECTOR
-          Text('Select Account Ledger', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary, fontSize: 13)),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.6)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                )
-              ],
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedLoanId,
-                isExpanded: true,
-                dropdownColor: scheme.surface,
-                borderRadius: BorderRadius.circular(20),
-                icon: Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: Icon(Icons.unfold_more_rounded, color: scheme.onSurface.withValues(alpha: 0.5)),
+      // RESPONSIVE FIX: Center and constrain the list view to an optimal 800px reading width
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              // STYLISH PREMIUM LOAN SELECTOR
+              Text('Select Account Ledger', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary, fontSize: 13)),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: scheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
                 ),
-                // 1. HOW IT LOOKS WHEN THE MENU IS OPEN
-                items: _userLoans.map((l) {
-                  final date = DateFormat('MMM dd, yyyy').format(DateTime.parse(l['created_at']));
-                  final cat = l['loan_category'] == 'emergency' ? 'Emergency' : 'Normal';
-                  return DropdownMenuItem<String>(
-                    value: l['id'],
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('$cat Loan — UGX ${currency.format(l['amount_requested'])}', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface, fontSize: 15)),
-                          const SizedBox(height: 2),
-                          Text('Applied: $date', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5), fontSize: 12, fontWeight: FontWeight.w500)),
-                        ],
-                      ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedLoanId,
+                    isExpanded: true,
+                    dropdownColor: scheme.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    icon: Padding(
+                      padding: const EdgeInsets.only(right: 16),
+                      child: Icon(Icons.unfold_more_rounded, color: scheme.onSurface.withValues(alpha: 0.5)),
                     ),
-                  );
-                }).toList(),
-                // 2. HOW IT LOOKS WHEN CLOSED (Selected State)
-                selectedItemBuilder: (BuildContext context) {
-                  return _userLoans.map<Widget>((l) {
-                    final cat = l['loan_category'] == 'emergency' ? 'Emergency' : 'Normal';
-                    return Row(
-                      children: [
-                        const SizedBox(width: 16),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(color: scheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
-                          child: Icon(Icons.account_balance_wallet_rounded, size: 18, color: scheme.primary),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            '$cat Loan — UGX ${currency.format(l['amount_requested'])}',
-                            style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface, fontSize: 15),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                    // 1. HOW IT LOOKS WHEN THE MENU IS OPEN
+                    items: _userLoans.map((l) {
+                      final date = DateFormat('MMM dd, yyyy').format(DateTime.parse(l['created_at']));
+                      final cat = l['loan_category'] == 'emergency' ? 'Emergency' : 'Normal';
+                      return DropdownMenuItem<String>(
+                        value: l['id'],
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('$cat Loan — UGX ${currency.format(l['amount_requested'])}', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface, fontSize: 15)),
+                              const SizedBox(height: 2),
+                              Text('Applied: $date', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5), fontSize: 12, fontWeight: FontWeight.w500)),
+                            ],
                           ),
                         ),
-                      ],
-                    );
-                  }).toList();
-                },
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _selectedLoanId = val);
-                    _fetchLoanRepaymentsDetails();
-                  }
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          if (_loadingDetails)
-            SizedBox(height: 200, child: Center(child: CustomLoader(size: 40, color: scheme.primary)))
-          else ...[
-            // 1. TIME TRACKING CARDS
-            Row(
-              children: [
-                Expanded(
-                  child: _MetricCounterBox(
-                    title: 'Installments Paid', count: '$installmentsMade', subtitle: 'Months Cleared',
-                    icon: Icons.check_circle_rounded, color: scheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _MetricCounterBox(
-                    title: 'Remaining Period', count: '$remainingInstallments', subtitle: 'Months Pending',
-                    icon: Icons.pending_actions_rounded, color: remainingInstallments == 0 ? Colors.green : const Color(0xFFE9A63C),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // 2. FINANCIAL PROGRESS GRAPHIC
-            _PaymentProgressCard(
-              requestedAmount: requestedAmount,
-              remainingPrincipal: remainingPrincipal,
-              totalPaidCash: totalPaidCash,
-              currency: currency,
-            ),
-            
-            const SizedBox(height: 32),
-            Text('Amortization & Payment Ledger', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: scheme.onSurface)),
-            const SizedBox(height: 12),
-            
-            // 3. THE DATATABLE (With visually shaded completed rows)
-            Container(
-              decoration: BoxDecoration(color: scheme.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5))),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(scheme.primary.withValues(alpha: 0.05)),
-                    horizontalMargin: 16,
-                    columns: [
-                      DataColumn(label: Text('Month', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary))),
-                      DataColumn(label: Text('Due Date', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary))),
-                      DataColumn(label: Text('Installment (UGX)', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary))),
-                      DataColumn(label: Text('Remaining Balance', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary))),
-                      DataColumn(label: Text('Ledger Status', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary))),
-                    ],
-                    rows: _schedule.map((row) {
-                      final periodNum = row['period_number'] as int;
-                      final isPaid = periodNum <= installmentsMade;
-                      final formattedDate = DateFormat('MMM dd, yyyy').format(DateTime.parse(row['due_date']));
-                      
-                      final textColor = isPaid ? scheme.onSurface.withValues(alpha: 0.4) : scheme.onSurface;
-                      final textWeight = isPaid ? FontWeight.w500 : FontWeight.w700;
-
-                      return DataRow(
-                        color: WidgetStateProperty.all(
-                          isPaid ? scheme.surfaceContainerHighest.withValues(alpha: 0.2) : Colors.transparent
-                        ),
-                        cells: [
-                          DataCell(Text('#$periodNum', style: TextStyle(fontWeight: textWeight, color: textColor))),
-                          DataCell(Text(formattedDate, style: TextStyle(fontWeight: textWeight, color: textColor))),
-                          DataCell(Text(currency.format(row['installment']), style: TextStyle(fontWeight: textWeight, color: textColor))),
-                          DataCell(Text('UGX ${currency.format(row['balance'])}', style: TextStyle(fontWeight: textWeight, color: textColor))),
-                          DataCell(
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isPaid ? Colors.green.withValues(alpha: 0.1) : const Color(0xFFE9A63C).withValues(alpha: 0.15), 
-                                borderRadius: BorderRadius.circular(8)
-                              ),
-                              child: Text(
-                                isPaid ? 'CLEARED' : 'PENDING', 
-                                style: TextStyle(
-                                  fontSize: 11, 
-                                  fontWeight: FontWeight.w800, 
-                                  color: isPaid ? Colors.green.withValues(alpha: 0.6) : const Color(0xFFE9A63C)
-                                )
-                              ),
-                            ),
-                          ),
-                        ],
                       );
                     }).toList(),
+                    // 2. HOW IT LOOKS WHEN CLOSED (Selected State)
+                    selectedItemBuilder: (BuildContext context) {
+                      return _userLoans.map<Widget>((l) {
+                        final cat = l['loan_category'] == 'emergency' ? 'Emergency' : 'Normal';
+                        return Row(
+                          children: [
+                            const SizedBox(width: 16),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(color: scheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                              child: Icon(Icons.account_balance_wallet_rounded, size: 18, color: scheme.primary),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                '$cat Loan — UGX ${currency.format(l['amount_requested'])}',
+                                style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface, fontSize: 15),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList();
+                    },
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedLoanId = val);
+                        _fetchLoanRepaymentsDetails();
+                      }
+                    },
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 40),
-          ]
-        ],
+              const SizedBox(height: 24),
+              
+              if (_loadingDetails)
+                SizedBox(height: 200, child: Center(child: CustomLoader(size: 40, color: scheme.primary)))
+              else ...[
+                // 1. TIME TRACKING CARDS
+                Row(
+                  children: [
+                    Expanded(
+                      child: _MetricCounterBox(
+                        title: 'Installments Paid', count: '$installmentsMade', subtitle: 'Months Cleared',
+                        icon: Icons.check_circle_rounded, color: scheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _MetricCounterBox(
+                        title: 'Remaining Period', count: '$remainingInstallments', subtitle: 'Months Pending',
+                        icon: Icons.pending_actions_rounded, color: remainingInstallments == 0 ? Colors.green : const Color(0xFFE9A63C),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // 2. FINANCIAL PROGRESS GRAPHIC
+                _PaymentProgressCard(
+                  requestedAmount: requestedAmount,
+                  remainingPrincipal: remainingPrincipal,
+                  totalPaidCash: totalPaidCash,
+                  currency: currency,
+                ),
+                
+                const SizedBox(height: 32),
+                Text('Amortization & Payment Ledger', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: scheme.onSurface)),
+                const SizedBox(height: 12),
+                
+                // 3. THE DATATABLE (With visually shaded completed rows)
+                Container(
+                  decoration: BoxDecoration(color: scheme.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5))),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        headingRowColor: WidgetStateProperty.all(scheme.primary.withValues(alpha: 0.05)),
+                        horizontalMargin: 16,
+                        columns: [
+                          DataColumn(label: Text('Month', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary))),
+                          DataColumn(label: Text('Due Date', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary))),
+                          DataColumn(label: Text('Installment (UGX)', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary))),
+                          DataColumn(label: Text('Remaining Balance', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary))),
+                          DataColumn(label: Text('Ledger Status', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary))),
+                        ],
+                        rows: _schedule.map((row) {
+                          final periodNum = row['period_number'] as int;
+                          final isPaid = periodNum <= installmentsMade;
+                          final formattedDate = DateFormat('MMM dd, yyyy').format(DateTime.parse(row['due_date']));
+                          
+                          final textColor = isPaid ? scheme.onSurface.withValues(alpha: 0.4) : scheme.onSurface;
+                          final textWeight = isPaid ? FontWeight.w500 : FontWeight.w700;
+        
+                          return DataRow(
+                            color: WidgetStateProperty.all(
+                              isPaid ? scheme.surfaceContainerHighest.withValues(alpha: 0.2) : Colors.transparent
+                            ),
+                            cells: [
+                              DataCell(Text('#$periodNum', style: TextStyle(fontWeight: textWeight, color: textColor))),
+                              DataCell(Text(formattedDate, style: TextStyle(fontWeight: textWeight, color: textColor))),
+                              DataCell(Text(currency.format(row['installment']), style: TextStyle(fontWeight: textWeight, color: textColor))),
+                              DataCell(Text('UGX ${currency.format(row['balance'])}', style: TextStyle(fontWeight: textWeight, color: textColor))),
+                              DataCell(
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isPaid ? Colors.green.withValues(alpha: 0.1) : const Color(0xFFE9A63C).withValues(alpha: 0.15), 
+                                    borderRadius: BorderRadius.circular(8)
+                                  ),
+                                  child: Text(
+                                    isPaid ? 'CLEARED' : 'PENDING', 
+                                    style: TextStyle(
+                                      fontSize: 11, 
+                                      fontWeight: FontWeight.w800, 
+                                      color: isPaid ? Colors.green.withValues(alpha: 0.6) : const Color(0xFFE9A63C)
+                                    )
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ]
+            ],
+          ),
+        ),
       ),
     );
   }

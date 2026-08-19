@@ -78,187 +78,199 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Security Hero
-                    _StaggeredFadeIn(
-                      index: 0,
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: scheme.primary.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: scheme.primary.withValues(alpha: 0.2), width: 2),
+      // RESPONSIVE FIX: Center and constrain the body to 800px max width
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Security Hero
+                        _StaggeredFadeIn(
+                          index: 0,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: scheme.primary.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: scheme.primary.withValues(alpha: 0.2), width: 2),
+                              ),
+                              child: Icon(Icons.shield_rounded, size: 64, color: scheme.primary),
+                            ),
                           ),
-                          child: Icon(Icons.shield_rounded, size: 64, color: scheme.primary),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _StaggeredFadeIn(
-                      index: 1,
-                      child: Text(
-                        'Update Your Password',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _StaggeredFadeIn(
-                      index: 2,
-                      child: Text(
-                        'Ensure your account stays secure by using a strong password.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), height: 1.4),
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Inputs Card
-                    _StaggeredFadeIn(
-                      index: 3,
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8)),
-                          ],
+                        const SizedBox(height: 16),
+                        _StaggeredFadeIn(
+                          index: 1,
+                          child: Text(
+                            'Update Your Password',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                          ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Credentials', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                            const SizedBox(height: 24),
-                            
-                            // New Password Field
-                            TextFormField(
-                              controller: _newPasswordCtrl,
-                              obscureText: _obscureNew,
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                              decoration: InputDecoration(
-                                labelText: 'New Password',
-                                prefixIcon: Icon(Icons.lock_outline_rounded, size: 22, color: scheme.onSurface.withValues(alpha: 0.5)),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureNew ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                    color: scheme.onSurface.withValues(alpha: 0.5),
-                                    size: 20,
-                                  ),
-                                  onPressed: () => setState(() => _obscureNew = !_obscureNew), // FIXED HERE
-                                ),
-                              ),
-                              validator: (v) {
-                                if (v == null || v.isEmpty) return 'Please enter a new password';
-                                if (v.length < 6) return 'Password must be at least 6 characters';
-                                return null;
-                              },
+                        const SizedBox(height: 8),
+                        _StaggeredFadeIn(
+                          index: 2,
+                          child: Text(
+                            'Ensure your account stays secure by using a strong password.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), height: 1.4),
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+        
+                        // Inputs Card
+                        _StaggeredFadeIn(
+                          index: 3,
+                          child: Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                              boxShadow: [
+                                BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8)),
+                              ],
                             ),
-                            const SizedBox(height: 20),
-                            
-                            // Confirm Password Field
-                            TextFormField(
-                              controller: _confirmPasswordCtrl,
-                              obscureText: _obscureConfirm,
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                              decoration: InputDecoration(
-                                labelText: 'Confirm New Password',
-                                prefixIcon: Icon(Icons.lock_reset_rounded, size: 22, color: scheme.onSurface.withValues(alpha: 0.5)),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                    color: scheme.onSurface.withValues(alpha: 0.5),
-                                    size: 20,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Credentials', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                                const SizedBox(height: 24),
+                                
+                                // New Password Field
+                                TextFormField(
+                                  controller: _newPasswordCtrl,
+                                  obscureText: _obscureNew,
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                                  decoration: InputDecoration(
+                                    labelText: 'New Password',
+                                    prefixIcon: Icon(Icons.lock_outline_rounded, size: 22, color: scheme.onSurface.withValues(alpha: 0.5)),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscureNew ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                        color: scheme.onSurface.withValues(alpha: 0.5),
+                                        size: 20,
+                                      ),
+                                      onPressed: () => setState(() => _obscureNew = !_obscureNew),
+                                    ),
+                                    filled: true,
+                                    fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                                   ),
-                                  onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm), // FIXED HERE
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty) return 'Please enter a new password';
+                                    if (v.length < 6) return 'Password must be at least 6 characters';
+                                    return null;
+                                  },
                                 ),
-                              ),
-                              validator: (v) {
-                                if (v == null || v.isEmpty) return 'Please confirm your password';
-                                if (v != _newPasswordCtrl.text) return 'Passwords do not match';
-                                return null;
-                              },
+                                const SizedBox(height: 20),
+                                
+                                // Confirm Password Field
+                                TextFormField(
+                                  controller: _confirmPasswordCtrl,
+                                  obscureText: _obscureConfirm,
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                                  decoration: InputDecoration(
+                                    labelText: 'Confirm New Password',
+                                    prefixIcon: Icon(Icons.lock_reset_rounded, size: 22, color: scheme.onSurface.withValues(alpha: 0.5)),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                        color: scheme.onSurface.withValues(alpha: 0.5),
+                                        size: 20,
+                                      ),
+                                      onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                                    ),
+                                    filled: true,
+                                    fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                                  ),
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty) return 'Please confirm your password';
+                                    if (v != _newPasswordCtrl.text) return 'Passwords do not match';
+                                    return null;
+                                  },
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-
-          // Bottom Action Dock
-          _StaggeredFadeIn(
-            index: 4,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(context).padding.bottom + 20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, -8)),
-                ],
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                border: Border(top: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5))),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (_error != null)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD9534F).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFD9534F).withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline_rounded, color: Color(0xFFD9534F)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              _error!,
-                              style: const TextStyle(color: Color(0xFFD9534F), fontWeight: FontWeight.w600, height: 1.3),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  
-                  FilledButton(
-                    onPressed: _saving ? null : _updatePassword,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
-                    ),
-                    child: _saving
-                        ? const CustomLoader(size: 24, color: Colors.white)
-                        : const Text(
-                            'Update Password',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                          ),
+        
+              // Bottom Action Dock
+              _StaggeredFadeIn(
+                index: 4,
+                child: Container(
+                  padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(context).padding.bottom + 20),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, -8)),
+                    ],
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                    border: Border(top: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5))),
                   ),
-                ],
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_error != null)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD9534F).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFD9534F).withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline_rounded, color: Color(0xFFD9534F)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  style: const TextStyle(color: Color(0xFFD9534F), fontWeight: FontWeight.w600, height: 1.3),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      
+                      FilledButton(
+                        onPressed: _saving ? null : _updatePassword,
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 0,
+                        ),
+                        child: _saving
+                            ? const CustomLoader(size: 24, color: Colors.white)
+                            : const Text(
+                                'Update Password',
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -155,202 +155,208 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   onRefresh: _fetchDashboardMetrics,
                   color: scheme.primary,
                   backgroundColor: scheme.surface,
-                  child: ListView(
-                    padding: const EdgeInsets.all(24),
-                    children: [
-                      // 1. HERO BANNER
-                      _StaggeredFadeIn(
-                        index: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [scheme.primary, scheme.primary.withValues(alpha: 0.8)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))],
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(color: scheme.onPrimary.withValues(alpha: 0.2), shape: BoxShape.circle),
-                                child: Icon(Icons.shield_rounded, size: 32, color: scheme.onPrimary),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Executive Access', style: TextStyle(color: scheme.onPrimary.withValues(alpha: 0.8), fontWeight: FontWeight.w600, fontSize: 13, letterSpacing: 0.5)),
-                                    const SizedBox(height: 4),
-                                    Text('System Overview', style: TextStyle(color: scheme.onPrimary, fontWeight: FontWeight.w800, fontSize: 24, letterSpacing: -0.5)),
-                                  ],
+                  // RESPONSIVE FIX: Center and constrain the body to 800px max width
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 800),
+                      child: ListView(
+                        padding: const EdgeInsets.all(24),
+                        children: [
+                          // 1. HERO BANNER
+                          _StaggeredFadeIn(
+                            index: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [scheme.primary, scheme.primary.withValues(alpha: 0.8)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))],
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 2. FINANCIAL METRICS GRID
-                      _StaggeredFadeIn(
-                        index: 1,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: _StatCard(
-                                title: 'Total Fees Earned',
-                                value: 'UGX ${currency.format(_totalProcessingFees)}',
-                                subtitle: 'From processing fees',
-                                icon: Icons.account_balance_wallet_rounded,
-                                color: const Color(0xFF58B982),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _StatCard(
-                                title: 'Active Portfolio',
-                                value: 'UGX ${currency.format(_totalDisbursed)}',
-                                subtitle: 'Total disbursed funds',
-                                icon: Icons.trending_up_rounded,
-                                color: scheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 3. NATIVE PIE CHART: LOAN STATUS DISTRIBUTION
-                      _StaggeredFadeIn(
-                        index: 2,
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: scheme.surface,
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Loan Status Distribution', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: scheme.onSurface)),
-                              const SizedBox(height: 24),
-                              Row(
+                              child: Row(
                                 children: [
-                                  SizedBox(
-                                    height: 120,
-                                    width: 120,
-                                    child: CustomPaint(
-                                      painter: _DonutChartPainter(
-                                        data: _statusCounts,
-                                        colors: {
-                                          'Running': scheme.primary,
-                                          'Cleared': const Color(0xFF58B982),
-                                          'Pending': const Color(0xFFE9A63C),
-                                          'Rejected': const Color(0xFFD9534F),
-                                        },
-                                      ),
-                                    ),
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(color: scheme.onPrimary.withValues(alpha: 0.2), shape: BoxShape.circle),
+                                    child: Icon(Icons.shield_rounded, size: 32, color: scheme.onPrimary),
                                   ),
-                                  const SizedBox(width: 32),
+                                  const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
-                                      children: _statusCounts.entries.map((e) {
-                                        if (e.value == 0) return const SizedBox.shrink();
-                                        Color c = e.key == 'Running' ? scheme.primary : 
-                                                  e.key == 'Cleared' ? const Color(0xFF58B982) : 
-                                                  e.key == 'Pending' ? const Color(0xFFE9A63C) : const Color(0xFFD9534F);
-                                        return Padding(
-                                          padding: const EdgeInsets.only(bottom: 8),
-                                          child: Row(
-                                            children: [
-                                              Container(width: 12, height: 12, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
-                                              const SizedBox(width: 8),
-                                              Expanded(child: Text(e.key, style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.7)))),
-                                              Text(e.value.toString(), style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface)),
-                                            ],
-                                          ),
-                                        );
-                                      }).toList(),
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Executive Access', style: TextStyle(color: scheme.onPrimary.withValues(alpha: 0.8), fontWeight: FontWeight.w600, fontSize: 13, letterSpacing: 0.5)),
+                                        const SizedBox(height: 4),
+                                        Text('System Overview', style: TextStyle(color: scheme.onPrimary, fontWeight: FontWeight.w800, fontSize: 24, letterSpacing: -0.5)),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 4. NATIVE BAR CHART: DISBURSEMENT TRENDS
-                      _StaggeredFadeIn(
-                        index: 3,
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: scheme.surface,
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                          const SizedBox(height: 24),
+                      
+                          // 2. FINANCIAL METRICS GRID
+                          _StaggeredFadeIn(
+                            index: 1,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: _StatCard(
+                                    title: 'Total Fees Earned',
+                                    value: 'UGX ${currency.format(_totalProcessingFees)}',
+                                    subtitle: 'From processing fees',
+                                    icon: Icons.account_balance_wallet_rounded,
+                                    color: const Color(0xFF58B982),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _StatCard(
+                                    title: 'Active Portfolio',
+                                    value: 'UGX ${currency.format(_totalDisbursed)}',
+                                    subtitle: 'Total disbursed funds',
+                                    icon: Icons.trending_up_rounded,
+                                    color: scheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Disbursements (Last 6 Months)', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: scheme.onSurface)),
-                              const SizedBox(height: 24),
-                              SizedBox(
-                                height: 150,
-                                child: _NativeBarChart(data: _monthlyTrends, primaryColor: scheme.primary),
+                          const SizedBox(height: 24),
+                      
+                          // 3. NATIVE PIE CHART: LOAN STATUS DISTRIBUTION
+                          _StaggeredFadeIn(
+                            index: 2,
+                            child: Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: scheme.surface,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      Text('Admin Modules', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5)),
-                      const SizedBox(height: 16),
-
-                      // 5. NAVIGATION MODULES
-                      _StaggeredFadeIn(
-                        index: 4,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: _AdminModuleCard(
-                                icon: Icons.manage_accounts_rounded, title: 'User Roles',
-                                color: const Color(0xFF4A90E2),
-                                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UserManagementScreen())),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Loan Status Distribution', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: scheme.onSurface)),
+                                  const SizedBox(height: 24),
+                                  Row(
+                                    children: [
+                                      SizedBox(
+                                        height: 120,
+                                        width: 120,
+                                        child: CustomPaint(
+                                          painter: _DonutChartPainter(
+                                            data: _statusCounts,
+                                            colors: {
+                                              'Running': scheme.primary,
+                                              'Cleared': const Color(0xFF58B982),
+                                              'Pending': const Color(0xFFE9A63C),
+                                              'Rejected': const Color(0xFFD9534F),
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 32),
+                                      Expanded(
+                                        child: Column(
+                                          children: _statusCounts.entries.map((e) {
+                                            if (e.value == 0) return const SizedBox.shrink();
+                                            Color c = e.key == 'Running' ? scheme.primary : 
+                                                      e.key == 'Cleared' ? const Color(0xFF58B982) : 
+                                                      e.key == 'Pending' ? const Color(0xFFE9A63C) : const Color(0xFFD9534F);
+                                            return Padding(
+                                              padding: const EdgeInsets.only(bottom: 8),
+                                              child: Row(
+                                                children: [
+                                                  Container(width: 12, height: 12, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(child: Text(e.key, style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.7)))),
+                                                  Text(e.value.toString(), style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface)),
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _AdminModuleCard(
-                                icon: Icons.account_balance_rounded, title: 'All Loans',
-                                badgeCount: _pendingLoans, color: const Color(0xFFE9A63C),
-                                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AdminAllLoansScreen(profile: widget.profile, repository: loanRepository))),
+                          ),
+                          const SizedBox(height: 24),
+                      
+                          // 4. NATIVE BAR CHART: DISBURSEMENT TRENDS
+                          _StaggeredFadeIn(
+                            index: 3,
+                            child: Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: scheme.surface,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Disbursements (Last 6 Months)', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: scheme.onSurface)),
+                                  const SizedBox(height: 24),
+                                  SizedBox(
+                                    height: 150,
+                                    child: _NativeBarChart(data: _monthlyTrends, primaryColor: scheme.primary),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 32),
+                      
+                          Text('Admin Modules', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+                          const SizedBox(height: 16),
+                      
+                          // 5. NAVIGATION MODULES
+                          _StaggeredFadeIn(
+                            index: 4,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: _AdminModuleCard(
+                                    icon: Icons.manage_accounts_rounded, title: 'User Roles',
+                                    color: const Color(0xFF4A90E2),
+                                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UserManagementScreen())),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _AdminModuleCard(
+                                    icon: Icons.account_balance_rounded, title: 'All Loans',
+                                    badgeCount: _pendingLoans, color: const Color(0xFFE9A63C),
+                                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AdminAllLoansScreen(profile: widget.profile, repository: loanRepository))),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _StaggeredFadeIn(
+                            index: 5,
+                            child: _AdminModuleCard(
+                              icon: Icons.picture_as_pdf_rounded, title: 'Generate PDF Reports',
+                              color: const Color(0xFFD9534F), isFullWidth: true,
+                              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportGenerationScreen())),
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      _StaggeredFadeIn(
-                        index: 5,
-                        child: _AdminModuleCard(
-                          icon: Icons.picture_as_pdf_rounded, title: 'Generate PDF Reports',
-                          color: const Color(0xFFD9534F), isFullWidth: true,
-                          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportGenerationScreen())),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                    ],
+                    ),
                   ),
                 ),
     );

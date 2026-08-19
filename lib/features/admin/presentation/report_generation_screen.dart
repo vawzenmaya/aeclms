@@ -215,183 +215,189 @@ class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          // ----------------------------------------------------
-          // Master Schedule Card
-          // ----------------------------------------------------
-          Container(
+      // RESPONSIVE FIX: Center and constrain the body to 800px max width
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: ListView(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 4)),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: const Color(0xFFD9534F).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
-                      child: const Icon(Icons.table_view_rounded, size: 28, color: Color(0xFFD9534F)),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Master Loan Schedule', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: scheme.onSurface)),
-                          const SizedBox(height: 4),
-                          Text('Generate summary of all system loans', style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.6))),
-                        ],
-                      ),
-                    ),
+            children: [
+              // ----------------------------------------------------
+              // Master Schedule Card
+              // ----------------------------------------------------
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: scheme.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 4)),
                   ],
                 ),
-                
-                const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider(height: 1)),
-                
-                Text('Filters', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary)),
-                const SizedBox(height: 12),
-                
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedStatus,
-                  dropdownColor: scheme.surface,
-                  decoration: InputDecoration(
-                    labelText: 'Loan Status',
-                    filled: true,
-                    fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                  items: _statusOptions.map((s) => DropdownMenuItem(
-                    value: s, 
-                    child: Text(s, style: TextStyle(color: scheme.onSurface)),
-                  )).toList(),
-                  onChanged: (val) => setState(() => _selectedStatus = val!),
-                ),
-                const SizedBox(height: 16),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _isGeneratingMaster ? null : _handleGenerateMasterSchedule,
-                    icon: _isGeneratingMaster 
-                        ? const CustomLoader(size: 20, color: Colors.white) 
-                        : const Icon(Icons.picture_as_pdf_rounded),
-                    label: Text(_isGeneratingMaster ? 'Generating...' : 'Download PDF', style: const TextStyle(fontWeight: FontWeight.w700)),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: const Color(0xFFD9534F),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // ----------------------------------------------------
-          // Individual Amortization Report Card
-          // ----------------------------------------------------
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 4)),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: const Color(0xFF4A90E2).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
-                      child: const Icon(Icons.person_search_rounded, size: 28, color: Color(0xFF4A90E2)),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Individual Amortization', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: scheme.onSurface)),
-                          const SizedBox(height: 4),
-                          Text('Detailed payment schedule per user', style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.6))),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider(height: 1)),
-                
-                Text('Select Applicant', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary)),
-                const SizedBox(height: 12),
-                
-                _isLoadingLoans
-                    ? const Center(child: CircularProgressIndicator())
-                    : _activeLoans.isEmpty
-                        ? Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(12)),
-                            child: Text('No active loans found in the system.', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))),
-                          )
-                        : DropdownButtonFormField<String>(
-                            initialValue: _selectedLoanId,
-                            hint: Text('Choose a loan...', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7))),
-                            dropdownColor: scheme.surface,
-                            isExpanded: true, 
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                            ),
-                            items: _activeLoans.map((loan) {
-                              final name = loan['profiles']?['full_name'] ?? 'Unknown';
-                              final amount = currency.format((loan['amount_requested'] as num?)?.toDouble() ?? 0);
-                              return DropdownMenuItem<String>(
-                                value: loan['id'].toString(),
-                                child: Text('$name (UGX $amount)', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface)),
-                              );
-                            }).toList(),
-                            onChanged: (val) => setState(() => _selectedLoanId = val),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: const Color(0xFFD9534F).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
+                          child: const Icon(Icons.table_view_rounded, size: 28, color: Color(0xFFD9534F)),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Master Loan Schedule', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: scheme.onSurface)),
+                              const SizedBox(height: 4),
+                              Text('Generate summary of all system loans', style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.6))),
+                            ],
                           ),
-                
-                const SizedBox(height: 24),
-                
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: (_isGeneratingAmortization || _selectedLoanId == null) ? null : _handleGenerateAmortization,
-                    icon: _isGeneratingAmortization 
-                        ? const CustomLoader(size: 20, color: Colors.white) 
-                        : const Icon(Icons.analytics_rounded),
-                    label: Text(_isGeneratingAmortization ? 'Calculating...' : 'Generate Schedule', style: const TextStyle(fontWeight: FontWeight.w700)),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: const Color(0xFF4A90E2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                      ],
                     ),
-                  ),
+                    
+                    const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider(height: 1)),
+                    
+                    Text('Filters', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary)),
+                    const SizedBox(height: 12),
+                    
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedStatus,
+                      dropdownColor: scheme.surface,
+                      decoration: InputDecoration(
+                        labelText: 'Loan Status',
+                        filled: true,
+                        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      items: _statusOptions.map((s) => DropdownMenuItem(
+                        value: s, 
+                        child: Text(s, style: TextStyle(color: scheme.onSurface)),
+                      )).toList(),
+                      onChanged: (val) => setState(() => _selectedStatus = val!),
+                    ),
+                    const SizedBox(height: 16),
+        
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _isGeneratingMaster ? null : _handleGenerateMasterSchedule,
+                        icon: _isGeneratingMaster 
+                            ? const CustomLoader(size: 20, color: Colors.white) 
+                            : const Icon(Icons.picture_as_pdf_rounded),
+                        label: Text(_isGeneratingMaster ? 'Generating...' : 'Download PDF', style: const TextStyle(fontWeight: FontWeight.w700)),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: const Color(0xFFD9534F),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          )
-        ],
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // ----------------------------------------------------
+              // Individual Amortization Report Card
+              // ----------------------------------------------------
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: scheme.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: const Color(0xFF4A90E2).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
+                          child: const Icon(Icons.person_search_rounded, size: 28, color: Color(0xFF4A90E2)),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Individual Amortization', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: scheme.onSurface)),
+                              const SizedBox(height: 4),
+                              Text('Detailed payment schedule per user', style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.6))),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider(height: 1)),
+                    
+                    Text('Select Applicant', style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary)),
+                    const SizedBox(height: 12),
+                    
+                    _isLoadingLoans
+                        ? const Center(child: CircularProgressIndicator())
+                        : _activeLoans.isEmpty
+                            ? Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(12)),
+                                child: Text('No active loans found in the system.', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))),
+                              )
+                            : DropdownButtonFormField<String>(
+                                initialValue: _selectedLoanId,
+                                hint: Text('Choose a loan...', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7))),
+                                dropdownColor: scheme.surface,
+                                isExpanded: true, 
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                ),
+                                items: _activeLoans.map((loan) {
+                                  final name = loan['profiles']?['full_name'] ?? 'Unknown';
+                                  final amount = currency.format((loan['amount_requested'] as num?)?.toDouble() ?? 0);
+                                  return DropdownMenuItem<String>(
+                                    value: loan['id'].toString(),
+                                    child: Text('$name (UGX $amount)', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface)),
+                                  );
+                                }).toList(),
+                                onChanged: (val) => setState(() => _selectedLoanId = val),
+                              ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: (_isGeneratingAmortization || _selectedLoanId == null) ? null : _handleGenerateAmortization,
+                        icon: _isGeneratingAmortization 
+                            ? const CustomLoader(size: 20, color: Colors.white) 
+                            : const Icon(Icons.analytics_rounded),
+                        label: Text(_isGeneratingAmortization ? 'Calculating...' : 'Generate Schedule', style: const TextStyle(fontWeight: FontWeight.w700)),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: const Color(0xFF4A90E2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            ],
+          ),
+        ),
       ),
     );
   }

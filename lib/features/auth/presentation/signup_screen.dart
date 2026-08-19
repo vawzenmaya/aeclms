@@ -210,7 +210,7 @@ class _SignupScreenState extends State<SignupScreen> {
           _StaggeredFadeIn(
             index: 0,
             child: Text(
-              'Join AEC',
+              'Join AEC LMS',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                     letterSpacing: -1,
@@ -241,7 +241,12 @@ class _SignupScreenState extends State<SignupScreen> {
               cursorColor: scheme.primary,
               decoration: InputDecoration(
                 labelText: 'Full Legal Name',
+                labelStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
                 prefixIcon: Icon(Icons.person_outline_rounded, color: scheme.onSurface.withValues(alpha: 0.5)),
+                filled: true,
+                fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: scheme.primary, width: 2)),
               ),
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your full name' : null,
             ),
@@ -259,7 +264,12 @@ class _SignupScreenState extends State<SignupScreen> {
               cursorColor: scheme.primary,
               decoration: InputDecoration(
                 labelText: 'Email Address',
+                labelStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
                 prefixIcon: Icon(Icons.email_outlined, color: scheme.onSurface.withValues(alpha: 0.5)),
+                filled: true,
+                fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: scheme.primary, width: 2)),
               ),
               validator: (v) => (v == null || !v.contains('@')) ? 'Please enter a valid email' : null,
             ),
@@ -277,7 +287,12 @@ class _SignupScreenState extends State<SignupScreen> {
               cursorColor: scheme.primary,
               decoration: InputDecoration(
                 labelText: 'Password',
+                labelStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
                 prefixIcon: Icon(Icons.lock_outline_rounded, color: scheme.onSurface.withValues(alpha: 0.5)),
+                filled: true,
+                fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: scheme.primary, width: 2)),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -306,7 +321,12 @@ class _SignupScreenState extends State<SignupScreen> {
               cursorColor: scheme.primary,
               decoration: InputDecoration(
                 labelText: 'Confirm Password',
+                labelStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
                 prefixIcon: Icon(Icons.shield_outlined, color: scheme.onSurface.withValues(alpha: 0.5)),
+                filled: true,
+                fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: scheme.primary, width: 2)),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,

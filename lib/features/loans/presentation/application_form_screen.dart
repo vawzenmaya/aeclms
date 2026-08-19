@@ -118,7 +118,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         communityId: communityId,
         excludeProfileId: widget.profile.id,
       ),
-      // NEW: Fetch active loans to allow user to pick which one to Top-Up
       Supabase.instance.client
           .from('loans')
           .select('id, amount_requested, created_at, loan_category')
@@ -382,41 +381,47 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         actions: [TextButton(onPressed: _saving ? null : _handleSave, child: const Text('Save Draft')), const SizedBox(width: 8)],
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Row(
-              children: List.generate(_totalSteps, (index) {
-                final isActive = index == _currentStep;
-                final isPassed = index < _currentStep;
-                return Expanded(
-                  flex: isActive ? 3 : 1,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: isActive || isPassed ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
-              child: SingleChildScrollView(
-                key: ValueKey<int>(_currentStep),
-                padding: const EdgeInsets.all(24),
-                child: _buildCurrentStepView(),
+      // RESPONSIVE FIX: Center and Constrain the entire body column to 800px max width
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Row(
+                  children: List.generate(_totalSteps, (index) {
+                    final isActive = index == _currentStep;
+                    final isPassed = index < _currentStep;
+                    return Expanded(
+                      flex: isActive ? 3 : 1,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: isActive || isPassed ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
               ),
-            ),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  child: SingleChildScrollView(
+                    key: ValueKey<int>(_currentStep),
+                    padding: const EdgeInsets.all(24),
+                    child: _buildCurrentStepView(),
+                  ),
+                ),
+              ),
+              SafeArea(child: Padding(padding: const EdgeInsets.all(24), child: _buildBottomNav())),
+            ],
           ),
-          SafeArea(child: Padding(padding: const EdgeInsets.all(24), child: _buildBottomNav())),
-        ],
+        ),
       ),
     );
   }
@@ -580,7 +585,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           const _StepHeader(title: 'Loan Particulars', subtitle: 'How much do you need?', icon: Icons.request_quote_rounded),
           _card([
             
-            // NEW TOP-UP DROPDOWN LOGIC
             if (_loanType == 'topup') ...[
               if (_eligibleTopUpLoans.isEmpty)
                 Container(

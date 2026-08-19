@@ -190,146 +190,152 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
               color: scheme.surface,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(width: 40, height: 4, decoration: BoxDecoration(color: scheme.outlineVariant, borderRadius: BorderRadius.circular(2))),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
+            // RESPONSIVE: Constrain the modal content width as well
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(color: buttonColor.withValues(alpha: 0.15), shape: BoxShape.circle),
-                        child: Icon(isReject ? Icons.cancel_outlined : Icons.draw_rounded, color: buttonColor),
+                      Center(
+                        child: Container(width: 40, height: 4, decoration: BoxDecoration(color: scheme.outlineVariant, borderRadius: BorderRadius.circular(2))),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(child: Text('Approval Remarks', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: scheme.onSurface))),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'A mandatory remark is required to officially sign off. This comment will be permanently visible on the loan tracker.',
-                    style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), height: 1.4),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  TextField(
-                    controller: ctrl,
-                    maxLines: 4,
-                    textCapitalization: TextCapitalization.sentences,
-                    onChanged: (val) => validate(),
-                    decoration: InputDecoration(
-                      hintText: isReject ? 'State the detailed reason for rejection...' : 'Enter your approval remarks...',
-                      filled: true,
-                      fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: buttonColor, width: 2)),
-                    ),
-                  ),
-
-                  if (isDisbursement && !isReject) ...[
-                    const SizedBox(height: 32),
-                    Text('Disbursement Details', style: TextStyle(fontWeight: FontWeight.w800, color: scheme.primary)),
-                    const SizedBox(height: 16),
-                    
-                    Text('First Deduction Date', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 13)),
-                    const SizedBox(height: 8),
-                    InkWell(
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate!,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 366)),
-                        );
-                        if (picked != null) {
-                          setSheetState(() => selectedDate = picked);
-                          validate();
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.calendar_month_rounded, color: scheme.primary, size: 20),
-                            const SizedBox(width: 12),
-                            Text(DateFormat('MMMM dd, yyyy').format(selectedDate!), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                          ],
-                        ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(color: buttonColor.withValues(alpha: 0.15), shape: BoxShape.circle),
+                            child: Icon(isReject ? Icons.cancel_outlined : Icons.draw_rounded, color: buttonColor),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text('Approval Remarks', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: scheme.onSurface))),
+                        ],
                       ),
-                    ),
-
-                    const SizedBox(height: 16),
-                    Text('Mode of Disbursement', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 13)),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      value: disbursementMode,
-                      hint: Text('Select Mode', style: TextStyle(color: scheme.onSurface)),
-                      dropdownColor: scheme.surface,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      const SizedBox(height: 12),
+                      Text(
+                        'A mandatory remark is required to officially sign off. This comment will be permanently visible on the loan tracker.',
+                        style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), height: 1.4),
                       ),
-                      items: ['RTGS', 'EFT', 'Cheque'].map((e) => DropdownMenuItem(
-                        value: e, 
-                        child: Text(e, style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface))
-                      )).toList(),
-                      onChanged: (val) {
-                        setSheetState(() => disbursementMode = val);
-                        validate();
-                      },
-                    ),
-
-                    if (disbursementMode == 'Cheque') ...[
-                      const SizedBox(height: 16),
-                      Text('Cheque Number', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 13)),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 24),
+                      
                       TextField(
-                        controller: chequeCtrl,
+                        controller: ctrl,
+                        maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
                         onChanged: (val) => validate(),
                         decoration: InputDecoration(
-                          hintText: 'Enter Cheque Number...',
+                          hintText: isReject ? 'State the detailed reason for rejection...' : 'Enter your approval remarks...',
                           filled: true,
                           fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: buttonColor, width: 2)),
+                        ),
+                      ),
+              
+                      if (isDisbursement && !isReject) ...[
+                        const SizedBox(height: 32),
+                        Text('Disbursement Details', style: TextStyle(fontWeight: FontWeight.w800, color: scheme.primary)),
+                        const SizedBox(height: 16),
+                        
+                        Text('First Deduction Date', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 13)),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate!,
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(const Duration(days: 366)),
+                            );
+                            if (picked != null) {
+                              setSheetState(() => selectedDate = picked);
+                              validate();
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.calendar_month_rounded, color: scheme.primary, size: 20),
+                                const SizedBox(width: 12),
+                                Text(DateFormat('MMMM dd, yyyy').format(selectedDate!), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                              ],
+                            ),
+                          ),
+                        ),
+              
+                        const SizedBox(height: 16),
+                        Text('Mode of Disbursement', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 13)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: disbursementMode,
+                          hint: Text('Select Mode', style: TextStyle(color: scheme.onSurface)),
+                          dropdownColor: scheme.surface,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          ),
+                          items: ['RTGS', 'EFT', 'Cheque'].map((e) => DropdownMenuItem(
+                            value: e, 
+                            child: Text(e, style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface))
+                          )).toList(),
+                          onChanged: (val) {
+                            setSheetState(() => disbursementMode = val);
+                            validate();
+                          },
+                        ),
+              
+                        if (disbursementMode == 'Cheque') ...[
+                          const SizedBox(height: 16),
+                          Text('Cheque Number', style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 13)),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: chequeCtrl,
+                            onChanged: (val) => validate(),
+                            decoration: InputDecoration(
+                              hintText: 'Enter Cheque Number...',
+                              filled: true,
+                              fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                            ),
+                          ),
+                        ],
+                      ],
+              
+                      const SizedBox(height: 32),
+                      
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: isSubmitEnabled 
+                            ? () => Navigator.pop(context, {
+                                'comment': ctrl.text.trim(), 
+                                'date': selectedDate,
+                                'disbursementMode': disbursementMode,
+                                'chequeNumber': chequeCtrl.text.trim(),
+                              }) 
+                            : null,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: buttonColor,
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white)),
                         ),
                       ),
                     ],
-                  ],
-
-                  const SizedBox(height: 32),
-                  
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: isSubmitEnabled 
-                        ? () => Navigator.pop(context, {
-                            'comment': ctrl.text.trim(), 
-                            'date': selectedDate,
-                            'disbursementMode': disbursementMode,
-                            'chequeNumber': chequeCtrl.text.trim(),
-                          }) 
-                        : null,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: buttonColor,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white)),
-                    ),
                   ),
-                ],
+                ),
               ),
             ),
           );
@@ -462,136 +468,142 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              children: [
-                _StaggeredFadeIn(
-                  index: 0,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      // RESPONSIVE: Center and constrain the whole column body for desktop views
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                  children: [
+                    _StaggeredFadeIn(
+                      index: 0,
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Amount Requested',
-                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                        color: scheme.onSurface.withValues(alpha: 0.6),
-                                        letterSpacing: 0.5,
-                                      ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                                  textBaseline: TextBaseline.alphabetic,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'UGX ',
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w600,
-                                        color: scheme.onSurface.withValues(alpha: 0.5),
-                                      ),
+                                      'Amount Requested',
+                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                            color: scheme.onSurface.withValues(alpha: 0.6),
+                                            letterSpacing: 0.5,
+                                          ),
                                     ),
-                                    Expanded(
-                                      child: Text(
-                                        amountString,
-                                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: -1,
-                                              color: scheme.onSurface,
-                                            ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                                      textBaseline: TextBaseline.alphabetic,
+                                      children: [
+                                        Text(
+                                          'UGX ',
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w600,
+                                            color: scheme.onSurface.withValues(alpha: 0.5),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            amountString,
+                                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                                  fontWeight: FontWeight.w800,
+                                                  letterSpacing: -1,
+                                                  color: scheme.onSurface,
+                                                ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: 16),
+                              LoanStatusChip(status: loan['status'] as String? ?? 'draft'),
+                            ],
                           ),
-                          const SizedBox(width: 16),
-                          LoanStatusChip(status: loan['status'] as String? ?? 'draft'),
+                          const SizedBox(height: 8),
+                          Text(
+                            loan['amount_in_words'] as String? ?? '',
+                            style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), fontStyle: FontStyle.italic, fontSize: 13),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        loan['amount_in_words'] as String? ?? '',
-                        style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6), fontStyle: FontStyle.italic, fontSize: 13),
+                    ),
+        
+                    const SizedBox(height: 32),
+        
+                    _StaggeredFadeIn(
+                      index: 1,
+                      child: _buildMetricsGrid(context, loan),
+                    ),
+        
+                    const SizedBox(height: 24),
+        
+                    _StaggeredFadeIn(
+                      index: 2,
+                      child: _buildDetailsCard(context, loan),
+                    ),
+        
+                    const SizedBox(height: 32),
+        
+                    _StaggeredFadeIn(
+                      index: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SectionHeader('Supporting Documents', icon: Icons.folder_open_rounded),
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: DocumentsSection(
+                              repository: _documentsRepo,
+                              loanId: loan['id'] as String,
+                              uploadedBy: widget.profile.id,
+                              hasGuarantor: loan['guarantor_id'] != null,
+                              canUpload: loan['applicant_id'] == widget.profile.id &&
+                                  (loan['status'] == 'draft' || loan['status'] == 'returned_to_applicant'),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                _StaggeredFadeIn(
-                  index: 1,
-                  child: _buildMetricsGrid(context, loan),
-                ),
-
-                const SizedBox(height: 24),
-
-                _StaggeredFadeIn(
-                  index: 2,
-                  child: _buildDetailsCard(context, loan),
-                ),
-
-                const SizedBox(height: 32),
-
-                _StaggeredFadeIn(
-                  index: 3,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _SectionHeader('Supporting Documents', icon: Icons.folder_open_rounded),
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: DocumentsSection(
-                          repository: _documentsRepo,
-                          loanId: loan['id'] as String,
-                          uploadedBy: widget.profile.id,
-                          hasGuarantor: loan['guarantor_id'] != null,
-                          canUpload: loan['applicant_id'] == widget.profile.id &&
-                              (loan['status'] == 'draft' || loan['status'] == 'returned_to_applicant'),
-                        ),
+                    ),
+        
+                    const SizedBox(height: 32),
+        
+                    _StaggeredFadeIn(
+                      index: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SectionHeader('Approval Tracker', icon: Icons.route_rounded),
+                          _buildTimeline(context, loan),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+        
+                    const SizedBox(height: 48),
+                  ],
                 ),
-
-                const SizedBox(height: 32),
-
-                _StaggeredFadeIn(
-                  index: 4,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _SectionHeader('Approval Tracker', icon: Icons.route_rounded),
-                      _buildTimeline(context, loan),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 48),
-              ],
-            ),
+              ),
+        
+              if (_isEditableDraft || _isGuarantorPending || _isMyApprovalTurn || _error != null)
+                _buildActionDock(context),
+            ],
           ),
-
-          if (_isEditableDraft || _isGuarantorPending || _isMyApprovalTurn || _error != null)
-            _buildActionDock(context),
-        ],
+        ),
       ),
     );
   }

@@ -18,87 +18,93 @@ class PendingAssignmentScreen extends StatelessWidget {
     
     return Scaffold(
       backgroundColor: scheme.surface,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Spacer(),
-              
-              // Animated Hero Graphic
-              _StaggeredFadeIn(
-                index: 0,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: scheme.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: scheme.primary.withValues(alpha: 0.2), width: 2),
-                    ),
-                    child: Icon(
-                      Icons.admin_panel_settings_rounded, 
-                      size: 80, 
-                      color: scheme.primary,
-                    ),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // Title
-              _StaggeredFadeIn(
-                index: 1,
-                child: Text(
-                  'Almost There',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                        color: scheme.onSurface,
+      // RESPONSIVE FIX: Center and constrain the view for desktop monitors
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Spacer(),
+                  
+                  // Animated Hero Graphic
+                  _StaggeredFadeIn(
+                    index: 0,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: scheme.primary.withValues(alpha: 0.2), width: 2),
+                        ),
+                        child: Icon(
+                          Icons.admin_panel_settings_rounded, 
+                          size: 80, 
+                          color: scheme.primary,
+                        ),
                       ),
-                ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Subtitle
-              _StaggeredFadeIn(
-                index: 2,
-                child: Text(
-                  "Your account is created, but you haven't been added to a community yet. "
-                  "Ask an administrator to finish setting up your account, then come back and log in again.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: scheme.onSurface.withValues(alpha: 0.6),
-                    height: 1.5,
+                    ),
                   ),
-                ),
-              ),
-              
-              const Spacer(),
-              
-              // Log out Button
-              _StaggeredFadeIn(
-                index: 3,
-                child: OutlinedButton.icon(
-                  onPressed: () => authService.signOut(),
-                  icon: const Icon(Icons.logout_rounded, size: 20),
-                  label: const Text('Log out', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    side: BorderSide(color: scheme.outlineVariant),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Title
+                  _StaggeredFadeIn(
+                    index: 1,
+                    child: Text(
+                      'Almost There',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                            color: scheme.onSurface,
+                          ),
+                    ),
                   ),
-                ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Subtitle
+                  _StaggeredFadeIn(
+                    index: 2,
+                    child: Text(
+                      "Your account is created, but you haven't been added to a community yet. "
+                      "Ask an administrator to finish setting up your account, then come back and log in again.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: scheme.onSurface.withValues(alpha: 0.6),
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                  
+                  const Spacer(),
+                  
+                  // Log out Button
+                  _StaggeredFadeIn(
+                    index: 3,
+                    child: OutlinedButton.icon(
+                      onPressed: () => authService.signOut(),
+                      icon: const Icon(Icons.logout_rounded, size: 20),
+                      label: const Text('Log out', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        side: BorderSide(color: scheme.outlineVariant),
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 32),
+                ],
               ),
-              
-              const SizedBox(height: 32),
-            ],
+            ),
           ),
         ),
       ),
@@ -142,88 +148,94 @@ class HomePlaceholderScreen extends StatelessWidget {
           const SizedBox(width: 8),
         ],
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Spacer(),
-              
-              // Hero Icon
-              _StaggeredFadeIn(
-                index: 0,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: scheme.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.savings_rounded, size: 64, color: scheme.primary),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Welcome Text
-              _StaggeredFadeIn(
-                index: 1,
-                child: Text(
-                  'Welcome,\n${profile.fullName}',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -1,
-                        height: 1.2,
-                        color: scheme.onSurface,
-                      ),
-                ),
-              ),
-              
-              const SizedBox(height: 12),
-              
-              _StaggeredFadeIn(
-                index: 2,
-                child: Text(
-                  'Logged in and ready to go.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: scheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-              ),
-              
-              const Spacer(),
-              
-              // Primary Action
-              _StaggeredFadeIn(
-                index: 3,
-                child: FilledButton.icon(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ApplicationFormScreen(
-                        repository: loanRepository,
-                        profile: profile,
-                        currentUserEmail: authService.currentUser?.email,
+      // RESPONSIVE FIX: Center and constrain the view for desktop monitors
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Spacer(),
+                  
+                  // Hero Icon
+                  _StaggeredFadeIn(
+                    index: 0,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.savings_rounded, size: 64, color: scheme.primary),
                       ),
                     ),
                   ),
-                  icon: const Icon(Icons.add_rounded, size: 22),
-                  label: const Text('Apply for a Loan', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    elevation: 0,
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Welcome Text
+                  _StaggeredFadeIn(
+                    index: 1,
+                    child: Text(
+                      'Welcome,\n${profile.fullName}',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1,
+                            height: 1.2,
+                            color: scheme.onSurface,
+                          ),
+                    ),
                   ),
-                ),
+                  
+                  const SizedBox(height: 12),
+                  
+                  _StaggeredFadeIn(
+                    index: 2,
+                    child: Text(
+                      'Logged in and ready to go.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: scheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+                  
+                  const Spacer(),
+                  
+                  // Primary Action
+                  _StaggeredFadeIn(
+                    index: 3,
+                    child: FilledButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ApplicationFormScreen(
+                            repository: loanRepository,
+                            profile: profile,
+                            currentUserEmail: authService.currentUser?.email,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.add_rounded, size: 22),
+                      label: const Text('Apply for a Loan', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 32),
+                ],
               ),
-              
-              const SizedBox(height: 32),
-            ],
+            ),
           ),
         ),
       ),

@@ -170,9 +170,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             autofillHints: const [AutofillHints.email],
                             style: TextStyle(color: scheme.onSurface, fontWeight: FontWeight.w500),
                             cursorColor: scheme.primary,
+                            // FIX: Added explicit borders and fill colors
                             decoration: InputDecoration(
                               labelText: 'Email Address',
+                              labelStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
                               prefixIcon: Icon(Icons.email_outlined, color: scheme.onSurface.withValues(alpha: 0.5)),
+                              filled: true,
+                              fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: scheme.primary, width: 2)),
                             ),
                             validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
                           ),
@@ -190,9 +196,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             autofillHints: const [AutofillHints.password],
                             style: TextStyle(color: scheme.onSurface, fontWeight: FontWeight.w500),
                             cursorColor: scheme.primary,
+                            // FIX: Added explicit borders and fill colors
                             decoration: InputDecoration(
                               labelText: 'Password',
+                              labelStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
                               prefixIcon: Icon(Icons.lock_outline_rounded, color: scheme.onSurface.withValues(alpha: 0.5)),
+                              filled: true,
+                              fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: scheme.primary, width: 2)),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,

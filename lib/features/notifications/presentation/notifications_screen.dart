@@ -263,21 +263,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
           ],
         ),
+        // RESPONSIVE: Center and constrain the TabBarView to a maximum width of 800
         body: _loading
             ? Center(child: CustomLoader(size: 56, color: scheme.primary))
-            : TabBarView(
-                children: [
-                  _buildNotificationList(
-                    _notifications, 
-                    'No notifications yet!', 
-                    'When you receive updates about your loans or tasks, they will appear here.'
+            : Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: TabBarView(
+                    children: [
+                      _buildNotificationList(
+                        _notifications, 
+                        'No notifications yet!', 
+                        'When you receive updates about your loans or tasks, they will appear here.'
+                      ),
+                      _buildNotificationList(
+                        unreadNotifications, 
+                        'You\'re all caught up!', 
+                        'You have no new or unread notifications right now.'
+                      ),
+                    ],
                   ),
-                  _buildNotificationList(
-                    unreadNotifications, 
-                    'You\'re all caught up!', 
-                    'You have no new or unread notifications right now.'
-                  ),
-                ],
+                ),
               ),
       ),
     );
@@ -322,7 +328,6 @@ class _NotificationCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        // FIX: Removed Theme.of(context).cardTheme.color and replaced it with scheme.surface
         color: isRead ? scheme.surface : scheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(

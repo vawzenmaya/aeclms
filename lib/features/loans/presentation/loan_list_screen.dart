@@ -134,36 +134,42 @@ class _LoanListScreenState extends State<LoanListScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: _localLoans.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.folder_off_outlined, size: 64, color: scheme.onSurface.withValues(alpha: 0.2)),
-                    const SizedBox(height: 16),
-                    Text('No loans found in this category.', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))),
-                  ],
+      // RESPONSIVE: Center and constrain the list view to 800px
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: _localLoans.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.folder_off_outlined, size: 64, color: scheme.onSurface.withValues(alpha: 0.2)),
+                        const SizedBox(height: 16),
+                        Text('No loans found in this category.', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))),
+                      ],
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: _localLoans.length,
+                  itemBuilder: (context, index) {
+                    final loan = _localLoans[index];
+                    final isDeletableDraft = loan['status'] == 'draft';
+        
+                    return _LoanCard(
+                      loan: loan,
+                      isActionRequired: widget.isActionRequired,
+                      isHistory: widget.isHistory,
+                      onTap: () => _openLoan(loan),
+                      onDelete: isDeletableDraft ? () => _confirmDelete(loan) : null,
+                    );
+                  },
                 ),
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: _localLoans.length,
-              itemBuilder: (context, index) {
-                final loan = _localLoans[index];
-                final isDeletableDraft = loan['status'] == 'draft';
-
-                return _LoanCard(
-                  loan: loan,
-                  isActionRequired: widget.isActionRequired,
-                  isHistory: widget.isHistory,
-                  onTap: () => _openLoan(loan),
-                  onDelete: isDeletableDraft ? () => _confirmDelete(loan) : null,
-                );
-              },
-            ),
+        ),
+      ),
     );
   }
 }
@@ -207,7 +213,6 @@ class _LoanCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        // FIX: Replaced Theme.of(context).cardTheme.color with scheme.surface to ignore dark global config
         color: isHistory ? scheme.surfaceContainerHighest.withValues(alpha: 0.2) : scheme.surface,
         borderRadius: BorderRadius.circular(24),
         border: cardBorder,

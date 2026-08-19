@@ -92,164 +92,174 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _StaggeredFadeIn(
-                      index: 0,
-                      child: Center(
-                        child: Stack(
-                          alignment: Alignment.bottomRight,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: scheme.primary.withValues(alpha: 0.3), width: 2),
-                              ),
-                              child: CircleAvatar(
-                                radius: 48,
-                                backgroundColor: scheme.primary.withValues(alpha: 0.15),
-                                child: Text(
-                                  widget.profile.fullName.isNotEmpty ? widget.profile.fullName[0].toUpperCase() : '?',
-                                  style: TextStyle(fontSize: 36, fontWeight: FontWeight.w800, color: scheme.primary),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _StaggeredFadeIn(
+                          index: 0,
+                          child: Center(
+                            child: Stack(
+                              alignment: Alignment.bottomRight,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: scheme.primary.withValues(alpha: 0.3), width: 2),
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 48,
+                                    backgroundColor: scheme.primary.withValues(alpha: 0.15),
+                                    child: Text(
+                                      widget.profile.fullName.isNotEmpty ? widget.profile.fullName[0].toUpperCase() : '?',
+                                      style: TextStyle(fontSize: 36, fontWeight: FontWeight.w800, color: scheme.primary),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: scheme.primary,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: scheme.surface, width: 3),
+                                  ),
+                                  child: Icon(Icons.edit_rounded, size: 16, color: scheme.onPrimary),
+                                ),
+                              ],
                             ),
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: scheme.primary,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: scheme.surface, width: 3),
-                              ),
-                              child: Icon(Icons.edit_rounded, size: 16, color: scheme.onPrimary),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 40),
+        
+                        _StaggeredFadeIn(
+                          index: 1,
+                          child: Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                              boxShadow: [
+                                BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8)),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Personal Details', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                                const SizedBox(height: 24),
+                                
+                                _buildTextField(
+                                  controller: _nameCtrl,
+                                  label: 'Full Legal Name',
+                                  icon: Icons.person_outline_rounded,
+                                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+                                ),
+                                const SizedBox(height: 20),
+                                
+                                _buildTextField(
+                                  controller: _phoneCtrl,
+                                  label: 'Phone Number',
+                                  icon: Icons.phone_outlined,
+                                  keyboardType: TextInputType.phone,
+                                  formatters: [FilteringTextInputFormatter.digitsOnly],
+                                ),
+                                const SizedBox(height: 20),
+                                
+                                _buildTextField(
+                                  controller: _employeeNoCtrl,
+                                  label: 'Employee Number (Optional)',
+                                  icon: Icons.badge_outlined,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 40),
-
-                    _StaggeredFadeIn(
-                      index: 1,
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8)),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Personal Details', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                            const SizedBox(height: 24),
-                            
-                            _buildTextField(
-                              controller: _nameCtrl,
-                              label: 'Full Legal Name',
-                              icon: Icons.person_outline_rounded,
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,
-                            ),
-                            const SizedBox(height: 20),
-                            
-                            _buildTextField(
-                              controller: _phoneCtrl,
-                              label: 'Phone Number',
-                              icon: Icons.phone_outlined,
-                              keyboardType: TextInputType.phone,
-                              formatters: [FilteringTextInputFormatter.digitsOnly],
-                            ),
-                            const SizedBox(height: 20),
-                            
-                            _buildTextField(
-                              controller: _employeeNoCtrl,
-                              label: 'Employee Number (Optional)',
-                              icon: Icons.badge_outlined,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-
-          _StaggeredFadeIn(
-            index: 2,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(context).padding.bottom + 20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, -8)),
-                ],
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                border: Border(top: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5))),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (_error != null)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD9534F).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFD9534F).withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline_rounded, color: Color(0xFFD9534F)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              _error!,
-                              style: const TextStyle(color: Color(0xFFD9534F), fontWeight: FontWeight.w600, height: 1.3),
+        
+              // FIX: Restyled the Action Dock to be a floating "pill" on desktop
+              _StaggeredFadeIn(
+                index: 2,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(24, 0, 24, MediaQuery.of(context).padding.bottom + 24),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 8)),
+                      ],
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_error != null)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD9534F).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFD9534F).withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.error_outline_rounded, color: Color(0xFFD9534F)),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _error!,
+                                    style: const TextStyle(color: Color(0xFFD9534F), fontWeight: FontWeight.w600, height: 1.3),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  
-                  FilledButton(
-                    onPressed: _saving ? null : _saveProfile,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
-                    ),
-                    child: _saving
-                        ? const CustomLoader(size: 24, color: Colors.white)
-                        : const Text(
-                            'Save Changes',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                        
+                        FilledButton(
+                          onPressed: _saving ? null : _saveProfile,
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            elevation: 0,
                           ),
+                          child: _saving
+                              ? const CustomLoader(size: 24, color: Colors.white)
+                              : const Text(
+                                  'Save Changes',
+                                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                                ),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
+  // FIX: Explicitly declared the InputDecoration styles and fill color
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -264,10 +274,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       keyboardType: keyboardType,
       inputFormatters: formatters,
       validator: validator,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: scheme.onSurface),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
         prefixIcon: Icon(icon, size: 22, color: scheme.onSurface.withValues(alpha: 0.5)),
+        filled: true,
+        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: scheme.primary, width: 2)),
       ),
     );
   }

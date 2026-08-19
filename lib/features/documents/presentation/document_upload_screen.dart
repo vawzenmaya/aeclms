@@ -1,9 +1,4 @@
 // lib/features/documents/presentation/document_upload_screen.dart
-//
-// Sits between "application saved" and "loan tracking". The applicant lands
-// here right after saving the form, uploads at least one supporting
-// document, then explicitly submits from here — only then do they move on
-// to the loan detail/tracking screen.
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -101,76 +96,80 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
         foregroundColor: Theme.of(context).colorScheme.onSurface,
         title: const Text('Final Step', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
         centerTitle: true,
-        automaticallyImplyLeading: false, // Prevents backing out without explicit action
+        automaticallyImplyLeading: false, 
         elevation: 0,
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                children: [
-                  // 1. Victory Hero Section
-                  _StaggeredFadeIn(
-                    index: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            scheme.primary.withValues(alpha: 0.15),
-                            scheme.primary.withValues(alpha: 0.05),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: scheme.primary.withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
+        // RESPONSIVE: Center and constrain the upload screen layout
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    children: [
+                      // 1. Victory Hero Section
+                      _StaggeredFadeIn(
+                        index: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                scheme.primary.withValues(alpha: 0.15),
+                                scheme.primary.withValues(alpha: 0.05),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                            child: Icon(Icons.check_circle_rounded, size: 48, color: scheme.primary),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Application Draft Saved!',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.5,
-                                  color: scheme.onSurface,
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: scheme.primary.withValues(alpha: 0.2),
+                                  shape: BoxShape.circle,
                                 ),
+                                child: Icon(Icons.check_circle_rounded, size: 48, color: scheme.primary),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Application Draft Saved!',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.5,
+                                      color: scheme.onSurface,
+                                    ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Your details are securely stored. Just one last thing before we send it for review.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: scheme.onSurface.withValues(alpha: 0.7),
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Your details are securely stored. Just one last thing before we send it for review.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: scheme.onSurface.withValues(alpha: 0.7),
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // 2. Documents Section Header
-                  _StaggeredFadeIn(
-                    index: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 16, left: 4),
-                      child: Row(
+                      
+                      const SizedBox(height: 32),
+                      
+                      // 2. Documents Section Header
+                      _StaggeredFadeIn(
+                        index: 1,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 16, left: 4),
+                          child: Row(
                         children: [
                           Icon(Icons.folder_open_rounded, size: 24, color: scheme.primary),
                           const SizedBox(width: 12),
@@ -183,131 +182,132 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                                 ),
                           ),
                         ],
-                      ),
-                    ),
-                  ),
-
-                  // 3. The Documents Widget Container
-                  _StaggeredFadeIn(
-                    index: 2,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 24,
-                            offset: const Offset(0, 8),
                           ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
-                        child: DocumentsSection(
-                          repository: _documentsRepo,
-                          loanId: widget.loanId,
-                          uploadedBy: widget.profile.id,
-                          hasGuarantor: widget.hasGuarantor,
-                          canUpload: true,
                         ),
                       ),
-                    ),
+
+                      // 3. The Documents Widget Container
+                      _StaggeredFadeIn(
+                        index: 2,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 24,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: DocumentsSection(
+                              repository: _documentsRepo,
+                              loanId: widget.loanId,
+                              uploadedBy: widget.profile.id,
+                              hasGuarantor: widget.hasGuarantor,
+                              canUpload: true,
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 48), 
+                    ],
                   ),
-                  
-                  const SizedBox(height: 48), // Bottom padding
-                ],
-              ),
-            ),
-            
-            // 4. Action Dock
-            _StaggeredFadeIn(
-              index: 3,
-              child: Container(
-                padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(context).padding.bottom + 20),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, -8)),
-                  ],
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                  border: Border(top: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5))),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_error != null)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD9534F).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFD9534F).withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
+                
+                // 4. Action Dock
+                _StaggeredFadeIn(
+                  index: 3,
+                  child: Container(
+                    padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(context).padding.bottom + 20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, -8)),
+                      ],
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                      border: Border(top: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5))),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_error != null)
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD9534F).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFD9534F).withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.error_outline_rounded, color: Color(0xFFD9534F)),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _error!,
+                                    style: const TextStyle(color: Color(0xFFD9534F), fontWeight: FontWeight.w600, height: 1.3),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        
+                        Row(
                           children: [
-                            const Icon(Icons.error_outline_rounded, color: Color(0xFFD9534F)),
+                            Expanded(
+                              flex: 2,
+                              child: OutlinedButton(
+                                onPressed: _submitting ? null : _goToDetail,
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 18),
+                                  side: BorderSide(color: scheme.outlineVariant),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                ),
+                                child: const Text('Save & Exit', style: TextStyle(fontWeight: FontWeight.w600)),
+                              ),
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Text(
-                                _error!,
-                                style: const TextStyle(color: Color(0xFFD9534F), fontWeight: FontWeight.w600, height: 1.3),
+                              flex: 3,
+                              child: FilledButton.icon(
+                                onPressed: _submitting ? null : _submit,
+                                icon: _submitting
+                                    ? const CustomLoader(size: 20, color: Colors.white)
+                                    : const Icon(Icons.send_rounded, size: 20),
+                                label: Text(
+                                  _submitting ? '' : 'Submit Application',
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                                ),
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 18),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  elevation: 0,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: OutlinedButton(
-                            onPressed: _submitting ? null : _goToDetail,
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 18),
-                              side: BorderSide(color: scheme.outlineVariant),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                            child: const Text('Save & Exit', style: TextStyle(fontWeight: FontWeight.w600)),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 3,
-                          child: FilledButton.icon(
-                            onPressed: _submitting ? null : _submit,
-                            icon: _submitting
-                                ? const CustomLoader(size: 20, color: Colors.white)
-                                : const Icon(Icons.send_rounded, size: 20),
-                            label: Text(
-                              _submitting ? '' : 'Submit Application',
-                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                            ),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 18),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              elevation: 0,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// A lightweight wrapper to provide a staggered fade & slide entrance animation.
 class _StaggeredFadeIn extends StatefulWidget {
   final Widget child;
   final int index;

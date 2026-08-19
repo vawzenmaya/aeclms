@@ -153,221 +153,227 @@ class _AdminAllLoansScreenState extends State<AdminAllLoansScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          // Filter Chips Section
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              border: Border(bottom: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.4))),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
-              ],
-            ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  _FilterChip(label: 'All Loans', value: 'all', groupValue: _selectedFilter, onChanged: (v) => setState(() => _selectedFilter = v)),
-                  _FilterChip(label: 'Active / Running', value: 'approved', groupValue: _selectedFilter, onChanged: (v) => setState(() => _selectedFilter = v)),
-                  _FilterChip(label: 'Cleared', value: 'cleared', groupValue: _selectedFilter, onChanged: (v) => setState(() => _selectedFilter = v)),
-                  _FilterChip(label: 'Pending', value: 'pending', groupValue: _selectedFilter, onChanged: (v) => setState(() => _selectedFilter = v)),
-                ],
+      // RESPONSIVE FIX: Center and constrain the body to 800px max width
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              // Filter Chips Section
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: scheme.surface,
+                  border: Border(bottom: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.4))),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      _FilterChip(label: 'All Loans', value: 'all', groupValue: _selectedFilter, onChanged: (v) => setState(() => _selectedFilter = v)),
+                      _FilterChip(label: 'Active / Running', value: 'approved', groupValue: _selectedFilter, onChanged: (v) => setState(() => _selectedFilter = v)),
+                      _FilterChip(label: 'Cleared', value: 'cleared', groupValue: _selectedFilter, onChanged: (v) => setState(() => _selectedFilter = v)),
+                      _FilterChip(label: 'Pending', value: 'pending', groupValue: _selectedFilter, onChanged: (v) => setState(() => _selectedFilter = v)),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-          
-          // List Section
-          Expanded(
-            child: _loading
-                ? Center(child: CustomLoader(size: 56, color: scheme.primary))
-                : _error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(_error!, style: const TextStyle(color: Color(0xFFD9534F), height: 1.5), textAlign: TextAlign.center),
-                        ),
-                      )
-                    : currentList.isEmpty
+              
+              // List Section
+              Expanded(
+                child: _loading
+                    ? Center(child: CustomLoader(size: 56, color: scheme.primary))
+                    : _error != null
                         ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.folder_off_outlined, size: 64, color: scheme.onSurface.withValues(alpha: 0.2)),
-                                const SizedBox(height: 16),
-                                Text('No loans found for this filter.', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))),
-                              ],
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Text(_error!, style: const TextStyle(color: Color(0xFFD9534F), height: 1.5), textAlign: TextAlign.center),
                             ),
                           )
-                        : RefreshIndicator(
-                            onRefresh: _fetchAllSystemLoans,
-                            color: scheme.primary,
-                            backgroundColor: scheme.surface,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.all(24),
-                              itemCount: currentList.length,
-                              itemBuilder: (context, index) {
-                                final loan = currentList[index];
-                                
-                                // --- FINANCIAL & PROGRESS CALCULATIONS ---
-                                final repayments = (loan['repayments'] as List?) ?? [];
-                                final schedule = (loan['loan_amortization_schedule'] as List?) ?? [];
-                                schedule.sort((a, b) => (a['period_number'] as int).compareTo(b['period_number'] as int));
-
-                                final amountRaw = (loan['amount_requested'] as num?)?.toDouble() ?? 0.0;
-                                final totalMonths = loan['duration_months'] as int? ?? 0;
-                                final monthsPaid = repayments.length;
-                                final monthsRemaining = totalMonths > monthsPaid ? totalMonths - monthsPaid : 0;
-
-                                final totalPaid = repayments.fold(0.0, (sum, r) => sum + (r['amount'] as num));
-                                
-                                double remainingPrincipal = amountRaw;
-                                if (monthsPaid > 0 && schedule.length >= monthsPaid) {
-                                  remainingPrincipal = (schedule[monthsPaid - 1]['balance'] as num).toDouble();
-                                } else if (monthsPaid >= totalMonths && totalMonths > 0) {
-                                  remainingPrincipal = 0.0;
-                                }
-
-                                final progress = totalMonths > 0 ? (monthsPaid / totalMonths).clamp(0.0, 1.0) : 0.0;
-                                // ------------------------------------------
-                                
-                                String applicantName = loan['profiles']?['full_name'] ?? 'Unknown Applicant';
-                                final dateStr = loan['created_at'] != null ? DateFormat('MMM dd, yyyy').format(DateTime.parse(loan['created_at'])) : 'Unknown Date';
-                                final isCleared = loan['status'] == 'cleared' || loan['status'] == 'completed';
-
-                                return _StaggeredFadeIn(
-                                  index: index,
-                                  child: Container(
-                                    margin: const EdgeInsets.only(bottom: 20),
-                                    decoration: BoxDecoration(
-                                      color: scheme.surface,
-                                      borderRadius: BorderRadius.circular(24),
-                                      border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-                                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
-                                    ),
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap: () => _openLoan(loan),
-                                        borderRadius: BorderRadius.circular(24),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(20),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              // HEADER
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        : currentList.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.folder_off_outlined, size: 64, color: scheme.onSurface.withValues(alpha: 0.2)),
+                                    const SizedBox(height: 16),
+                                    Text('No loans found for this filter.', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))),
+                                  ],
+                                ),
+                              )
+                            : RefreshIndicator(
+                                onRefresh: _fetchAllSystemLoans,
+                                color: scheme.primary,
+                                backgroundColor: scheme.surface,
+                                child: ListView.builder(
+                                  padding: const EdgeInsets.all(24),
+                                  itemCount: currentList.length,
+                                  itemBuilder: (context, index) {
+                                    final loan = currentList[index];
+                                    
+                                    // --- FINANCIAL & PROGRESS CALCULATIONS ---
+                                    final repayments = (loan['repayments'] as List?) ?? [];
+                                    final schedule = (loan['loan_amortization_schedule'] as List?) ?? [];
+                                    schedule.sort((a, b) => (a['period_number'] as int).compareTo(b['period_number'] as int));
+          
+                                    final amountRaw = (loan['amount_requested'] as num?)?.toDouble() ?? 0.0;
+                                    final totalMonths = loan['duration_months'] as int? ?? 0;
+                                    final monthsPaid = repayments.length;
+                                    final monthsRemaining = totalMonths > monthsPaid ? totalMonths - monthsPaid : 0;
+          
+                                    final totalPaid = repayments.fold(0.0, (sum, r) => sum + (r['amount'] as num));
+                                    
+                                    double remainingPrincipal = amountRaw;
+                                    if (monthsPaid > 0 && schedule.length >= monthsPaid) {
+                                      remainingPrincipal = (schedule[monthsPaid - 1]['balance'] as num).toDouble();
+                                    } else if (monthsPaid >= totalMonths && totalMonths > 0) {
+                                      remainingPrincipal = 0.0;
+                                    }
+          
+                                    final progress = totalMonths > 0 ? (monthsPaid / totalMonths).clamp(0.0, 1.0) : 0.0;
+                                    // ------------------------------------------
+                                    
+                                    String applicantName = loan['profiles']?['full_name'] ?? 'Unknown Applicant';
+                                    final dateStr = loan['created_at'] != null ? DateFormat('MMM dd, yyyy').format(DateTime.parse(loan['created_at'])) : 'Unknown Date';
+                                    final isCleared = loan['status'] == 'cleared' || loan['status'] == 'completed';
+          
+                                    return _StaggeredFadeIn(
+                                      index: index,
+                                      child: Container(
+                                        margin: const EdgeInsets.only(bottom: 20),
+                                        decoration: BoxDecoration(
+                                          color: scheme.surface,
+                                          borderRadius: BorderRadius.circular(24),
+                                          border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                                        ),
+                                        child: Material(
+                                          color: Colors.transparent,
+                                          child: InkWell(
+                                            onTap: () => _openLoan(loan),
+                                            borderRadius: BorderRadius.circular(24),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(20),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  Expanded(
-                                                    child: Text(
-                                                      applicantName,
-                                                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: scheme.onSurface),
-                                                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  LoanStatusChip(status: loan['status'] ?? 'draft'),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text('Applied: $dateStr', style: TextStyle(fontSize: 12, color: scheme.onSurface.withValues(alpha: 0.5))),
-                                              
-                                              const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1)),
-                                              
-                                              // CORE AMOUNT
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                children: [
-                                                  Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                  // HEADER
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                     children: [
-                                                      Text('Amount Requested', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.6))),
-                                                      const SizedBox(height: 4),
-                                                      Text('UGX ${currency.format(amountRaw)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: scheme.primary, letterSpacing: -0.5)),
-                                                    ],
-                                                  ),
-                                                  Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                                    children: [
-                                                      Text('Monthly EMI', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.6))),
-                                                      const SizedBox(height: 4),
-                                                      Text('UGX ${currency.format(loan['installment_amount'] ?? 0)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: scheme.onSurface)),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-
-                                              // ONLY SHOW PROGRESS IF IT IS AN ACTIVE OR CLEARED LOAN
-                                              if (['approved', 'active', 'cleared', 'completed', 'disbursed'].contains(loan['status'])) ...[
-                                                const SizedBox(height: 20),
-                                                
-                                                // PROGRESS BAR
-                                                Row(
-                                                  children: [
-                                                    Expanded(
-                                                      child: ClipRRect(
-                                                        borderRadius: BorderRadius.circular(4),
-                                                        child: LinearProgressIndicator(
-                                                          value: progress,
-                                                          minHeight: 6,
-                                                          backgroundColor: scheme.surfaceContainerHighest,
-                                                          valueColor: AlwaysStoppedAnimation<Color>(isCleared ? Colors.green : scheme.primary),
+                                                      Expanded(
+                                                        child: Text(
+                                                          applicantName,
+                                                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: scheme.onSurface),
+                                                          maxLines: 1, overflow: TextOverflow.ellipsis,
                                                         ),
                                                       ),
+                                                      const SizedBox(width: 8),
+                                                      LoanStatusChip(status: loan['status'] ?? 'draft'),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text('Applied: $dateStr', style: TextStyle(fontSize: 12, color: scheme.onSurface.withValues(alpha: 0.5))),
+                                                  
+                                                  const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1)),
+                                                  
+                                                  // CORE AMOUNT
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text('Amount Requested', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.6))),
+                                                          const SizedBox(height: 4),
+                                                          Text('UGX ${currency.format(amountRaw)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: scheme.primary, letterSpacing: -0.5)),
+                                                        ],
+                                                      ),
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                                        children: [
+                                                          Text('Monthly EMI', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.6))),
+                                                          const SizedBox(height: 4),
+                                                          Text('UGX ${currency.format(loan['installment_amount'] ?? 0)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: scheme.onSurface)),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+          
+                                                  // ONLY SHOW PROGRESS IF IT IS AN ACTIVE OR CLEARED LOAN
+                                                  if (['approved', 'active', 'cleared', 'completed', 'disbursed'].contains(loan['status'])) ...[
+                                                    const SizedBox(height: 20),
+                                                    
+                                                    // PROGRESS BAR
+                                                    Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: ClipRRect(
+                                                            borderRadius: BorderRadius.circular(4),
+                                                            child: LinearProgressIndicator(
+                                                              value: progress,
+                                                              minHeight: 6,
+                                                              backgroundColor: scheme.surfaceContainerHighest,
+                                                              valueColor: AlwaysStoppedAnimation<Color>(isCleared ? Colors.green : scheme.primary),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(width: 12),
+                                                        Text('${(progress * 100).toInt()}%', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: isCleared ? Colors.green : scheme.primary)),
+                                                      ],
                                                     ),
-                                                    const SizedBox(width: 12),
-                                                    Text('${(progress * 100).toInt()}%', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: isCleared ? Colors.green : scheme.primary)),
+                                                    const SizedBox(height: 16),
+                                                    
+                                                    // 4-GRID METRICS
+                                                    Container(
+                                                      padding: const EdgeInsets.all(12),
+                                                      decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
+                                                      child: Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                _MiniStat(label: 'Months Paid', value: '$monthsPaid mo', color: scheme.onSurface),
+                                                                const SizedBox(height: 8),
+                                                                _MiniStat(label: 'Amount Paid', value: currency.format(totalPaid), color: scheme.onSurface),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          Container(width: 1, height: 40, color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                                                          const SizedBox(width: 12),
+                                                          Expanded(
+                                                            child: Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                _MiniStat(label: 'Months Left', value: '$monthsRemaining mo', color: isCleared ? Colors.green : const Color(0xFFE9A63C)),
+                                                                const SizedBox(height: 8),
+                                                                _MiniStat(label: 'Balance Left', value: currency.format(remainingPrincipal), color: isCleared ? Colors.green : const Color(0xFFD9534F)),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    )
                                                   ],
-                                                ),
-                                                const SizedBox(height: 16),
-                                                
-                                                // 4-GRID METRICS
-                                                Container(
-                                                  padding: const EdgeInsets.all(12),
-                                                  decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
-                                                  child: Row(
-                                                    children: [
-                                                      Expanded(
-                                                        child: Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            _MiniStat(label: 'Months Paid', value: '$monthsPaid mo', color: scheme.onSurface),
-                                                            const SizedBox(height: 8),
-                                                            _MiniStat(label: 'Amount Paid', value: currency.format(totalPaid), color: scheme.onSurface),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                      Container(width: 1, height: 40, color: scheme.outlineVariant.withValues(alpha: 0.5)),
-                                                      const SizedBox(width: 12),
-                                                      Expanded(
-                                                        child: Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            _MiniStat(label: 'Months Left', value: '$monthsRemaining mo', color: isCleared ? Colors.green : const Color(0xFFE9A63C)),
-                                                            const SizedBox(height: 8),
-                                                            _MiniStat(label: 'Balance Left', value: currency.format(remainingPrincipal), color: isCleared ? Colors.green : const Color(0xFFD9534F)),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                )
-                                              ],
-                                            ],
+                                                ],
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                                    );
+                                  },
+                                ),
+                              ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       floatingActionButton: _filteredLoans.isNotEmpty 
           ? FloatingActionButton.extended(

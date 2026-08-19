@@ -3,7 +3,7 @@
 import 'package:aeclms/features/profile/presentation/change_password_screen.dart';
 import 'package:aeclms/features/profile/presentation/edit_profile_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Needed for the profile refresh
+import 'package:supabase_flutter/supabase_flutter.dart'; 
 
 import '../../../../main.dart';
 import '../../auth/data/auth_service.dart';
@@ -23,10 +23,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // Local state for the push notifications toggle
   bool _pushNotificationsEnabled = true;
-  
-  // Local state to hold the dynamic name
   late String _fullName;
 
   @override
@@ -35,7 +32,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _fullName = widget.profile.fullName;
   }
 
-  // Fetches the newly updated name from the database without restarting the app
   Future<void> _refreshProfile() async {
     try {
       final response = await Supabase.instance.client
@@ -59,7 +55,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final scheme = Theme.of(context).colorScheme;
     final email = widget.authService.currentUser?.email ?? 'Unknown Email';
     
-    // Determine if dark mode is currently active
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -72,195 +67,199 @@ class _SettingsScreenState extends State<SettingsScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        children: [
-          // 1. Profile Hero Section
-          _StaggeredFadeIn(
-            index: 0,
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    scheme.primary.withValues(alpha: 0.15),
-                    scheme.primary.withValues(alpha: 0.02),
+      // RESPONSIVE FIX: Center and constrain the body to 800px max width
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            children: [
+              // 1. Profile Hero Section
+              _StaggeredFadeIn(
+                index: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        scheme.primary.withValues(alpha: 0.15),
+                        scheme.primary.withValues(alpha: 0.02),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: scheme.primary.withValues(alpha: 0.1)),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: scheme.primary.withValues(alpha: 0.3), width: 2),
+                        ),
+                        child: CircleAvatar(
+                          radius: 40,
+                          backgroundColor: scheme.primary.withValues(alpha: 0.2),
+                          child: Text(
+                            _fullName.isNotEmpty ? _fullName[0].toUpperCase() : '?',
+                            style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: scheme.primary),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _fullName,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          email,
+                          style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 32),
+        
+              // 2. Account Group
+              _StaggeredFadeIn(
+                index: 1,
+                child: _SettingsGroup(
+                  title: 'Account',
+                  children: [
+                    _SettingsTile(
+                      icon: Icons.person_outline_rounded,
+                      title: 'Edit Profile',
+                      subtitle: 'Update your name, phone, and employee ID',
+                      onTap: () async {
+                        final didUpdate = await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => EditProfileScreen(profile: widget.profile),
+                          ),
+                        );
+                        
+                        if (didUpdate == true) {
+                          _refreshProfile();
+                        }
+                      },
+                    ),
+                    _SettingsTile(
+                      icon: Icons.shield_outlined,
+                      title: 'Security',
+                      subtitle: 'Change your password',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const ChangePasswordScreen(),
+                          ),
+                        );
+                      },
+                    ),
                   ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: scheme.primary.withValues(alpha: 0.1)),
               ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: scheme.primary.withValues(alpha: 0.3), width: 2),
-                    ),
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundColor: scheme.primary.withValues(alpha: 0.2),
-                      child: Text(
-                        _fullName.isNotEmpty ? _fullName[0].toUpperCase() : '?',
-                        style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: scheme.primary),
+        
+              const SizedBox(height: 24),
+        
+              // 3. Preferences Group
+              _StaggeredFadeIn(
+                index: 2,
+                child: _SettingsGroup(
+                  title: 'Preferences',
+                  children: [
+                    _SettingsTile(
+                      icon: Icons.notifications_outlined,
+                      title: 'Push Notifications',
+                      subtitle: 'Manage alerts and updates',
+                      trailing: Switch(
+                        value: _pushNotificationsEnabled,
+                        onChanged: (val) {
+                          setState(() => _pushNotificationsEnabled = val);
+                        },
+                        activeThumbColor: scheme.primary,
                       ),
+                      onTap: () {
+                        setState(() => _pushNotificationsEnabled = !_pushNotificationsEnabled);
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _fullName,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.5),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(12),
+                    _SettingsTile(
+                      icon: Icons.dark_mode_outlined,
+                      title: 'Dark Mode',
+                      subtitle: 'Toggle app appearance',
+                      trailing: Switch(
+                        value: isDarkMode,
+                        onChanged: (val) {
+                          appThemeNotifier.value = val ? ThemeMode.dark : ThemeMode.light;
+                        },
+                        activeThumbColor: scheme.primary,
+                      ),
+                      onTap: () {
+                        appThemeNotifier.value = !isDarkMode ? ThemeMode.dark : ThemeMode.light;
+                      },
                     ),
-                    child: Text(
-                      email,
-                      style: TextStyle(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ),
-          
-          const SizedBox(height: 32),
-
-          // 2. Account Group
-          _StaggeredFadeIn(
-            index: 1,
-            child: _SettingsGroup(
-              title: 'Account',
-              children: [
-                _SettingsTile(
-                  icon: Icons.person_outline_rounded,
-                  title: 'Edit Profile',
-                  subtitle: 'Update your name, phone, and employee ID',
-                  onTap: () async {
-                    // Await the result from EditProfileScreen
-                    final didUpdate = await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => EditProfileScreen(profile: widget.profile),
-                      ),
-                    );
-                    
-                    // If it returned true, fetch the new data
-                    if (didUpdate == true) {
-                      _refreshProfile();
-                    }
-                  },
+        
+              const SizedBox(height: 24),
+        
+              // 4. Support Group
+              _StaggeredFadeIn(
+                index: 3,
+                child: _SettingsGroup(
+                  title: 'Support',
+                  children: [
+                    _SettingsTile(
+                      icon: Icons.help_outline_rounded,
+                      title: 'Help Center',
+                      onTap: () {},
+                    ),
+                    _SettingsTile(
+                      icon: Icons.info_outline_rounded,
+                      title: 'About AECLMS',
+                      subtitle: 'Version 1.0.0',
+                      showChevron: false,
+                      onTap: () {},
+                    ),
+                  ],
                 ),
-                _SettingsTile(
-                  icon: Icons.shield_outlined,
-                  title: 'Security',
-                  subtitle: 'Change your password',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const ChangePasswordScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // 3. Preferences Group
-          _StaggeredFadeIn(
-            index: 2,
-            child: _SettingsGroup(
-              title: 'Preferences',
-              children: [
-                _SettingsTile(
-                  icon: Icons.notifications_outlined,
-                  title: 'Push Notifications',
-                  subtitle: 'Manage alerts and updates',
-                  trailing: Switch(
-                    value: _pushNotificationsEnabled,
-                    onChanged: (val) {
-                      setState(() => _pushNotificationsEnabled = val);
-                    },
-                    activeThumbColor: scheme.primary,
-                  ),
-                  onTap: () {
-                    setState(() => _pushNotificationsEnabled = !_pushNotificationsEnabled);
-                  },
-                ),
-                _SettingsTile(
-                  icon: Icons.dark_mode_outlined,
-                  title: 'Dark Mode',
-                  subtitle: 'Toggle app appearance',
-                  trailing: Switch(
-                    value: isDarkMode,
-                    onChanged: (val) {
-                      appThemeNotifier.value = val ? ThemeMode.dark : ThemeMode.light;
-                    },
-                    activeThumbColor: scheme.primary,
-                  ),
-                  onTap: () {
-                    appThemeNotifier.value = !isDarkMode ? ThemeMode.dark : ThemeMode.light;
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // 4. Support Group
-          _StaggeredFadeIn(
-            index: 3,
-            child: _SettingsGroup(
-              title: 'Support',
-              children: [
-                _SettingsTile(
-                  icon: Icons.help_outline_rounded,
-                  title: 'Help Center',
-                  onTap: () {},
-                ),
-                _SettingsTile(
-                  icon: Icons.info_outline_rounded,
-                  title: 'About AECLMS',
-                  subtitle: 'Version 1.0.0',
-                  showChevron: false,
-                  onTap: () {},
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 40),
-
-          // 5. Log Out Action
-          _StaggeredFadeIn(
-            index: 4,
-            child: FilledButton.icon(
-              onPressed: () => _confirmSignOut(context),
-              icon: const Icon(Icons.logout_rounded, size: 20),
-              label: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFD9534F).withValues(alpha: 0.1),
-                foregroundColor: const Color(0xFFD9534F),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                side: BorderSide(color: const Color(0xFFD9534F).withValues(alpha: 0.3)),
               ),
-            ),
+        
+              const SizedBox(height: 40),
+        
+              // 5. Log Out Action
+              _StaggeredFadeIn(
+                index: 4,
+                child: FilledButton.icon(
+                  onPressed: () => _confirmSignOut(context),
+                  icon: const Icon(Icons.logout_rounded, size: 20),
+                  label: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFD9534F).withValues(alpha: 0.1),
+                    foregroundColor: const Color(0xFFD9534F),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    side: BorderSide(color: const Color(0xFFD9534F).withValues(alpha: 0.3)),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 48),
+            ],
           ),
-          
-          const SizedBox(height: 48),
-        ],
+        ),
       ),
     );
   }

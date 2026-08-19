@@ -78,12 +78,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               child: const Icon(Icons.person_remove_rounded, color: Color(0xFFD9534F)),
             ),
             const SizedBox(width: 12),
-            Text('Delete User?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20, color: scheme.onSurface)), // FIX: Explicit text color
+            Text('Delete User?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20, color: scheme.onSurface)), 
           ],
         ),
         content: Text(
           'Are you sure you want to permanently delete ${user['full_name']} from the system? This action cannot be undone.',
-          style: TextStyle(height: 1.4, color: scheme.onSurface), // FIX: Explicit text color
+          style: TextStyle(height: 1.4, color: scheme.onSurface), 
         ),
         actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         actions: [
@@ -154,130 +154,136 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         surfaceTintColor: Colors.transparent,
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
-        title: Text('User Management', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5, color: scheme.onSurface)), // FIX: Explicit text color
+        title: Text('User Management', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.5, color: scheme.onSurface)), 
         centerTitle: true,
         elevation: 0,
       ),
-      body: _loading
-          ? Center(child: CustomLoader(size: 56, color: scheme.primary))
-          : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(_error!, style: const TextStyle(color: Color(0xFFD9534F), height: 1.5), textAlign: TextAlign.center),
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _fetchUsers,
-                  color: scheme.primary,
-                  backgroundColor: scheme.surface, // FIX: Background color for loading indicator
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(24),
-                    itemCount: _profiles.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final user = _profiles[index];
-                      final isPending = user['community_id'] == null;
-                      
-                      // Safely parse the nested role label from the Supabase join response
-                      String currentRole = 'No role assigned';
-                      if (user['user_roles'] != null && (user['user_roles'] as List).isNotEmpty) {
-                        final roleData = (user['user_roles'] as List).first;
-                        if (roleData['roles'] != null && roleData['roles']['label'] != null) {
-                          currentRole = roleData['roles']['label'];
-                        }
-                      }
-
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: scheme.surface,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isPending ? const Color(0xFFE9A63C).withValues(alpha: 0.5) : scheme.outlineVariant.withValues(alpha: 0.5),
-                            width: isPending ? 1.5 : 1.0,
-                          ),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
-                          ],
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          leading: CircleAvatar(
-                            backgroundColor: isPending ? const Color(0xFFE9A63C).withValues(alpha: 0.15) : scheme.primary.withValues(alpha: 0.15),
-                            child: Text(
-                              user['full_name'].toString().isNotEmpty ? user['full_name'].toString()[0].toUpperCase() : '?',
-                              style: TextStyle(
-                                color: isPending ? const Color(0xFFE9A63C) : scheme.primary, 
-                                fontWeight: FontWeight.w800,
+      // RESPONSIVE FIX: Center and constrain the list view to 800px max width
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: _loading
+              ? Center(child: CustomLoader(size: 56, color: scheme.primary))
+              : _error != null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(_error!, style: const TextStyle(color: Color(0xFFD9534F), height: 1.5), textAlign: TextAlign.center),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _fetchUsers,
+                      color: scheme.primary,
+                      backgroundColor: scheme.surface, 
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(24),
+                        itemCount: _profiles.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final user = _profiles[index];
+                          final isPending = user['community_id'] == null;
+                          
+                          // Safely parse the nested role label from the Supabase join response
+                          String currentRole = 'No role assigned';
+                          if (user['user_roles'] != null && (user['user_roles'] as List).isNotEmpty) {
+                            final roleData = (user['user_roles'] as List).first;
+                            if (roleData['roles'] != null && roleData['roles']['label'] != null) {
+                              currentRole = roleData['roles']['label'];
+                            }
+                          }
+          
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: scheme.surface,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isPending ? const Color(0xFFE9A63C).withValues(alpha: 0.5) : scheme.outlineVariant.withValues(alpha: 0.5),
+                                width: isPending ? 1.5 : 1.0,
                               ),
+                              boxShadow: [
+                                BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+                              ],
                             ),
-                          ),
-                          title: Text(
-                            user['full_name'] ?? 'Unknown User',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: scheme.onSurface),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 4),
-                              Row(
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              leading: CircleAvatar(
+                                backgroundColor: isPending ? const Color(0xFFE9A63C).withValues(alpha: 0.15) : scheme.primary.withValues(alpha: 0.15),
+                                child: Text(
+                                  user['full_name'].toString().isNotEmpty ? user['full_name'].toString()[0].toUpperCase() : '?',
+                                  style: TextStyle(
+                                    color: isPending ? const Color(0xFFE9A63C) : scheme.primary, 
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                user['full_name'] ?? 'Unknown User',
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: scheme.onSurface),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(Icons.badge_rounded, size: 14, color: scheme.onSurface.withValues(alpha: 0.5)),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      currentRole, 
-                                      style: TextStyle(
-                                        color: scheme.onSurface.withValues(alpha: 0.7),
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.badge_rounded, size: 14, color: scheme.onSurface.withValues(alpha: 0.5)),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          currentRole, 
+                                          style: TextStyle(
+                                            color: scheme.onSurface.withValues(alpha: 0.7),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (isPending) ...[
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE9A63C).withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Text(
+                                        'Pending Assignment',
+                                        style: TextStyle(color: Color(0xFFE9A63C), fontSize: 11, fontWeight: FontWeight.w700),
                                       ),
                                     ),
+                                  ]
+                                ],
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Delete User Button
+                                  IconButton(
+                                    onPressed: () => _confirmDeleteUser(user),
+                                    icon: Icon(Icons.delete_outline_rounded, color: const Color(0xFFD9534F).withValues(alpha: 0.8)),
+                                    tooltip: 'Delete User',
+                                  ),
+                                  const SizedBox(width: 4),
+                                  // Manage Role Button
+                                  FilledButton.tonal(
+                                    onPressed: () => _openRoleAssignment(user),
+                                    style: FilledButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                    child: const Text('Manage', style: TextStyle(fontWeight: FontWeight.w600)),
                                   ),
                                 ],
                               ),
-                              if (isPending) ...[
-                                const SizedBox(height: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE9A63C).withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Text(
-                                    'Pending Assignment',
-                                    style: TextStyle(color: Color(0xFFE9A63C), fontSize: 11, fontWeight: FontWeight.w700),
-                                  ),
-                                ),
-                              ]
-                            ],
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Delete User Button
-                              IconButton(
-                                onPressed: () => _confirmDeleteUser(user),
-                                icon: Icon(Icons.delete_outline_rounded, color: const Color(0xFFD9534F).withValues(alpha: 0.8)),
-                                tooltip: 'Delete User',
-                              ),
-                              const SizedBox(width: 4),
-                              // Manage Role Button
-                              FilledButton.tonal(
-                                onPressed: () => _openRoleAssignment(user),
-                                style: FilledButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                child: const Text('Manage', style: TextStyle(fontWeight: FontWeight.w600)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+        ),
+      ),
     );
   }
 }
@@ -379,66 +385,72 @@ class _RoleAssignmentSheetState extends State<_RoleAssignmentSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40, height: 4, 
-                  decoration: BoxDecoration(color: scheme.outlineVariant, borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Assign Role to ${widget.user['full_name']}', 
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: scheme.onSurface), // FIX: Explicit text color
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Select a system role to grant this user access to the AEC platform.',
-                style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
-              ),
-              const SizedBox(height: 24),
-              
-              _isLoadingRoles 
-                ? const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
-                : DropdownButtonFormField<String>(
-                    initialValue: _selectedRoleId,
-                    dropdownColor: scheme.surface, // FIX: Explicit Dropdown Menu background
-                    hint: Text('Select Role', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))), // FIX: Hint text color
-                    decoration: InputDecoration(
-                      filled: true, // FIX: Match global form styling
-                      fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        // RESPONSIVE FIX: Center and constrain the bottom sheet modal to 600px max width
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40, height: 4, 
+                      decoration: BoxDecoration(color: scheme.outlineVariant, borderRadius: BorderRadius.circular(2)),
                     ),
-                    items: _availableRoles.map((role) {
-                      return DropdownMenuItem<String>(
-                        value: role['id'].toString(), 
-                        child: Text(role['label'].toString(), style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface)), // FIX: Explicit option text color
-                      );
-                    }).toList(),
-                    onChanged: (val) => setState(() => _selectedRoleId = val),
                   ),
-              
-              const SizedBox(height: 32),
-              
-              FilledButton(
-                onPressed: _saving || _selectedRoleId == null ? null : _assignRole,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: _saving
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Confirm Assignment', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Assign Role to ${widget.user['full_name']}', 
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: scheme.onSurface), 
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Select a system role to grant this user access to the AEC platform.',
+                    style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  _isLoadingRoles 
+                    ? const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+                    : DropdownButtonFormField<String>(
+                        initialValue: _selectedRoleId,
+                        dropdownColor: scheme.surface, 
+                        hint: Text('Select Role', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))), 
+                        decoration: InputDecoration(
+                          filled: true, 
+                          fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        ),
+                        items: _availableRoles.map((role) {
+                          return DropdownMenuItem<String>(
+                            value: role['id'].toString(), 
+                            child: Text(role['label'].toString(), style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface)), 
+                          );
+                        }).toList(),
+                        onChanged: (val) => setState(() => _selectedRoleId = val),
+                      ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  FilledButton(
+                    onPressed: _saving || _selectedRoleId == null ? null : _assignRole,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: _saving
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('Confirm Assignment', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                ],
               ),
-              
-              const SizedBox(height: 16),
-            ],
+            ),
           ),
         ),
       ),
