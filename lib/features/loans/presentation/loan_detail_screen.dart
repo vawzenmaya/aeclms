@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart'; 
 import 'package:file_picker/file_picker.dart';
 
+import '../../../core/utils/app_error_handler.dart'; // NEW IMPORT
 import '../../auth/data/auth_service.dart';
 import '../../documents/data/documents_repository.dart';
 import '../../documents/presentation/document_upload_screen.dart';
@@ -82,7 +83,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Failed to load loan details: $e';
+          _error = e.toString();
           _loading = false;
         });
       }
@@ -122,8 +123,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     try {
       await widget.repository.respondAsGuarantor(widget.loanId, confirm: confirm, comment: comment);
       await _load();
-    } on PostgrestException catch (e) {
-      setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = AppErrorHandler.getFriendlyMessage(e)); // Form Banner Handling
     } finally {
       if (mounted) setState(() => _acting = false);
     }
@@ -143,7 +144,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
     setState(() => _acting = true);
     try {
-      // 1. If it's a disbursement and they provided a proof document, upload it first!
       String? proofPath;
       if (isDisbursement && result['proofBytes'] != null) {
         final fileName = result['proofFileName'] as String;
@@ -156,10 +156,9 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           bytes: bytes, 
           uploadedBy: widget.profile.id,
         );
-        proofPath = '${widget.loanId}/$fileName'; // Mark it for the action recorder
+        proofPath = '${widget.loanId}/$fileName'; 
       }
 
-      // 2. Record the final action
       await widget.repository.recordStageAction(
         loanId: widget.loanId,
         stageId: _currentStage!['id'] as String,
@@ -169,13 +168,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         firstDeductionDate: result['date'],
         disbursementMode: result['disbursementMode'], 
         chequeNumber: result['chequeNumber'],
-        proofDocumentUrl: proofPath, // Will be null if not a disbursement
+        proofDocumentUrl: proofPath, 
       );
       await _load();
-    } on PostgrestException catch (e) {
-      setState(() => _error = e.message);
     } catch (e) {
-      setState(() => _error = 'An unexpected error occurred during processing: $e');
+      setState(() => _error = AppErrorHandler.getFriendlyMessage(e)); // Form Banner Handling
     } finally {
       if (mounted) setState(() => _acting = false);
     }
@@ -187,7 +184,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     DateTime? selectedDate = isDisbursement ? DateTime.now().add(const Duration(days: 30)) : null;
     String? disbursementMode;
     
-    // Proof of disbursement state
     Uint8List? proofBytes;
     String? proofFileName;
     
@@ -207,7 +203,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
              if (isDisbursement && !isReject) {
                  if (disbursementMode == null) valid = false;
                  if (disbursementMode == 'Cheque' && chequeCtrl.text.trim().isEmpty) valid = false;
-                 if (proofBytes == null) valid = false; // MUST HAVE PROOF UPLOADED!
+                 if (proofBytes == null) valid = false; 
              }
              setSheetState(() => isSubmitEnabled = valid);
           }
@@ -354,9 +350,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                           ),
                         ],
 
-                        // ==========================================
-                        // NEW: PROOF OF DISBURSEMENT UPLOAD
-                        // ==========================================
                         const SizedBox(height: 24),
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -421,7 +414,7 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                                 'date': selectedDate,
                                 'disbursementMode': disbursementMode,
                                 'chequeNumber': chequeCtrl.text.trim(),
-                                'proofBytes': proofBytes, // Pass bytes to outer function for upload
+                                'proofBytes': proofBytes, 
                                 'proofFileName': proofFileName,
                               }) 
                             : null,
@@ -483,6 +476,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     if (_loading) {
       return Scaffold(body: Center(child: CustomLoader(size: 56, color: Theme.of(context).colorScheme.primary)));
     }
+    
+    // NEW: Trigger the global AppErrorView if we caught an error loading the specific loan
     if (_error != null || _loan == null) {
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -493,27 +488,9 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           title: const Text('Error', style: TextStyle(fontWeight: FontWeight.w600)),
           leading: const BackButton(),
         ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline_rounded, color: Color(0xFFD9534F), size: 48),
-                const SizedBox(height: 16),
-                Text(
-                  _error ?? 'An unknown error occurred while loading this loan.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Color(0xFFD9534F), fontSize: 16),
-                ),
-                const SizedBox(height: 24),
-                FilledButton.tonal(
-                  onPressed: _load,
-                  child: const Text('Try Again'),
-                )
-              ],
-            ),
-          ),
+        body: AppErrorView(
+          error: _error ?? 'Loan details not found.',
+          onRetry: _load,
         ),
       );
     }

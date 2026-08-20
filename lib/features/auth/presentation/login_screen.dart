@@ -46,7 +46,6 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text,
       );
-      // AuthGate listens for the state change and will navigate away automatically.
     } catch (e) {
       setState(() => _error = _friendlyError(e));
     } finally {

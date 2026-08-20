@@ -6,6 +6,7 @@ import 'package:aeclms/features/loans/presentation/terms_and_conditions_screen.d
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; 
 
+import '../../../core/utils/app_error_handler.dart'; // NEW IMPORT
 import '../../auth/data/auth_service.dart';
 import '../../notifications/data/notifications_repository.dart';
 import '../../notifications/presentation/notifications_screen.dart';
@@ -34,6 +35,7 @@ class LoansDashboardScreen extends StatefulWidget {
 
 class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
   bool _loading = true;
+  String? _error; // NEW: Track dashboard errors
   List<Map<String, dynamic>> _mine = [];
   List<Map<String, dynamic>> _awaitingAction = [];
   int _unreadCount = 0;
@@ -47,56 +49,67 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-
-    final results = await Future.wait([
-      widget.repository.fetchVisibleLoans(),
-      widget.repository.fetchMyStageAssignments(
-        profileId: widget.profile.id,
-        communityId: widget.profile.communityId!,
-      ),
-      widget.notificationsRepository.fetchUnreadCount(),
-      Supabase.instance.client
-          .from('user_roles')
-          .select('role_id')
-          .eq('profile_id', widget.profile.id)
-          .eq('is_active', true)
-    ]);
-    
-    final loans = results[0] as List<Map<String, dynamic>>;
-    final myStages = results[1] as Set<String>;
-    final unread = results[2] as int;
-    final myRoles = results[3] as List<dynamic>;
-
-    bool isCommunityChairperson = myRoles.any((row) => row['role_id'] == 7);
-
-    final mine = <Map<String, dynamic>>[];
-    final awaiting = <Map<String, dynamic>>[];
-
-    for (final loan in loans) {
-      final isApplicant = loan['applicant_id'] == widget.profile.id;
-      final isPendingGuarantor =
-          loan['guarantor_id'] == widget.profile.id &&
-          loan['guarantor_response'] == 'pending';
-      final stageKey = '${loan['template_id']}:${loan['current_stage_order']}';
-      final isMyApprovalTurn =
-          loan['status'] == 'in_review' && myStages.contains(stageKey);
-
-      if (isPendingGuarantor || isMyApprovalTurn) {
-        awaiting.add(loan);
-      } else if (isApplicant) {
-        mine.add(loan);
-      } 
-    }
-
-    if (!mounted) return;
     setState(() {
-      _mine = mine;
-      _awaitingAction = awaiting;
-      _unreadCount = unread;
-      _isAdmin = isCommunityChairperson; 
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+
+    try {
+      final results = await Future.wait([
+        widget.repository.fetchVisibleLoans(),
+        widget.repository.fetchMyStageAssignments(
+          profileId: widget.profile.id,
+          communityId: widget.profile.communityId!,
+        ),
+        widget.notificationsRepository.fetchUnreadCount(),
+        Supabase.instance.client
+            .from('user_roles')
+            .select('role_id')
+            .eq('profile_id', widget.profile.id)
+            .eq('is_active', true)
+      ]);
+      
+      final loans = results[0] as List<Map<String, dynamic>>;
+      final myStages = results[1] as Set<String>;
+      final unread = results[2] as int;
+      final myRoles = results[3] as List<dynamic>;
+
+      bool isCommunityChairperson = myRoles.any((row) => row['role_id'] == 7);
+
+      final mine = <Map<String, dynamic>>[];
+      final awaiting = <Map<String, dynamic>>[];
+
+      for (final loan in loans) {
+        final isApplicant = loan['applicant_id'] == widget.profile.id;
+        final isPendingGuarantor =
+            loan['guarantor_id'] == widget.profile.id &&
+            loan['guarantor_response'] == 'pending';
+        final stageKey = '${loan['template_id']}:${loan['current_stage_order']}';
+        final isMyApprovalTurn =
+            loan['status'] == 'in_review' && myStages.contains(stageKey);
+
+        if (isPendingGuarantor || isMyApprovalTurn) {
+          awaiting.add(loan);
+        } else if (isApplicant) {
+          mine.add(loan);
+        } 
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _mine = mine;
+        _awaitingAction = awaiting;
+        _unreadCount = unread;
+        _isAdmin = isCommunityChairperson; 
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _startNewApplication() async {
@@ -140,11 +153,8 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     
-    // RESPONSIVE CALCULATIONS
     final screenWidth = MediaQuery.of(context).size.width;
-    // 4 columns on large desktop, 3 on tablets/small desktop, 2 on mobile
     final int gridCols = screenWidth > 1100 ? 4 : (screenWidth > 700 ? 3 : 2);
-    // Make cards slightly wider dynamically on desktop so they don't look squished
     final double gridRatio = screenWidth > 1100 ? 1.5 : (screenWidth > 700 ? 1.3 : 1.1);
 
     return Scaffold(
@@ -168,7 +178,6 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
         ),
         centerTitle: true,
         actions: [
-          // NEW: Dedicated Reload button for Desktop users
           IconButton(
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh_rounded),
@@ -198,118 +207,120 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
           const SizedBox(width: 8),
         ],
       ),
+      // NEW: Show AppErrorView if _error is caught!
       body: _loading
           ? Center(child: CustomLoader(size: 56, color: scheme.primary))
-          : RefreshIndicator(
-              onRefresh: _load,
-              color: scheme.primary,
-              backgroundColor: scheme.surface,
-              // RESPONSIVE: Center the content and restrict max width on Desktop
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.only(bottom: 40),
-                    children: [
-                      _StaggeredFadeIn(
-                        index: 0,
-                        child: _DashboardHero(profile: widget.profile),
-                      ),
+          : _error != null 
+              ? AppErrorView(error: _error!, onRetry: _load)
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  color: scheme.primary,
+                  backgroundColor: scheme.surface,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1200),
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.only(bottom: 40),
+                        children: [
+                          _StaggeredFadeIn(
+                            index: 0,
+                            child: _DashboardHero(profile: widget.profile),
+                          ),
 
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _StaggeredFadeIn(
-                              index: 1,
-                              child: Text(
-                                'Overview',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.5,
-                                  color: scheme.onSurface,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-
-                            GridView.count(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              crossAxisCount: gridCols, // RESPONSIVE VAR
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                              childAspectRatio: gridRatio, // RESPONSIVE VAR
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _StaggeredFadeIn(
-                                  index: 2,
-                                  child: _DashboardBox(
-                                    title: 'Apply Now',
-                                    subtitle: 'New Loan Request',
-                                    icon: Icons.add_circle_outline_rounded,
-                                    color: scheme.primary,
-                                    isPrimary: true,
-                                    onTap: _startNewApplication,
-                                  ),
-                                ),
-                                _StaggeredFadeIn(
-                                  index: 3,
-                                  child: _DashboardBox(
-                                    title: 'Pending Action',
-                                    subtitle:
-                                        '${_awaitingAction.length} Requires Review',
-                                    icon: Icons.assignment_late_rounded,
-                                    color: const Color(0xFFE9A63C),
-                                    badgeCount: _awaitingAction.length,
-                                    onTap: () => _navigateToListScreen(
-                                      title: 'Pending Action',
-                                      loans: _awaitingAction,
-                                      isActionRequired: true,
+                                  index: 1,
+                                  child: Text(
+                                    'Overview',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.5,
+                                      color: scheme.onSurface,
                                     ),
                                   ),
                                 ),
-                                _StaggeredFadeIn(
-                                  index: 4,
-                                  child: _DashboardBox(
-                                    title: 'My Loans',
-                                    subtitle: '${_mine.length} Active / Drafts',
-                                    icon: Icons.folder_shared_rounded,
-                                    color: const Color(0xFF4A90E2),
-                                    onTap: () => _navigateToListScreen(
-                                      title: 'My Applications',
-                                      loans: _mine,
+                                const SizedBox(height: 16),
+
+                                GridView.count(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  crossAxisCount: gridCols, 
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                  childAspectRatio: gridRatio, 
+                                  children: [
+                                    _StaggeredFadeIn(
+                                      index: 2,
+                                      child: _DashboardBox(
+                                        title: 'Apply Now',
+                                        subtitle: 'New Loan Request',
+                                        icon: Icons.add_circle_outline_rounded,
+                                        color: scheme.primary,
+                                        isPrimary: true,
+                                        onTap: _startNewApplication,
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                _StaggeredFadeIn(
-                                  index: 5,
-                                  child: _DashboardBox(
-                                    title: 'Repayments',
-                                    subtitle: 'Track installments',
-                                    icon: Icons.payments_rounded,
-                                    color: const Color(0xFF58B982), 
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => RepaymentsScreen(
-                                          profileId: widget.profile.id,
+                                    _StaggeredFadeIn(
+                                      index: 3,
+                                      child: _DashboardBox(
+                                        title: 'Pending Action',
+                                        subtitle:
+                                            '${_awaitingAction.length} Requires Review',
+                                        icon: Icons.assignment_late_rounded,
+                                        color: const Color(0xFFE9A63C),
+                                        badgeCount: _awaitingAction.length,
+                                        onTap: () => _navigateToListScreen(
+                                          title: 'Pending Action',
+                                          loans: _awaitingAction,
+                                          isActionRequired: true,
                                         ),
                                       ),
                                     ),
-                                  ),
+                                    _StaggeredFadeIn(
+                                      index: 4,
+                                      child: _DashboardBox(
+                                        title: 'My Loans',
+                                        subtitle: '${_mine.length} Active / Drafts',
+                                        icon: Icons.folder_shared_rounded,
+                                        color: const Color(0xFF4A90E2),
+                                        onTap: () => _navigateToListScreen(
+                                          title: 'My Applications',
+                                          loans: _mine,
+                                        ),
+                                      ),
+                                    ),
+                                    _StaggeredFadeIn(
+                                      index: 5,
+                                      child: _DashboardBox(
+                                        title: 'Repayments',
+                                        subtitle: 'Track installments',
+                                        icon: Icons.payments_rounded,
+                                        color: const Color(0xFF58B982), 
+                                        onTap: () => Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => RepaymentsScreen(
+                                              profileId: widget.profile.id,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
     );
   }
 }

@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart'; 
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
@@ -41,10 +40,11 @@ class PdfReportService {
 
     final Uint8List pdfBytes = await compute(_buildMasterScheduleTask, params);
 
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdfBytes,
-      name: 'AEC_Loan_Schedule.pdf',
-    );
+    // BYPASS PRINT DIALOG: Save to temp folder and open directly
+    final output = await getTemporaryDirectory();
+    final file = File('${output.path}/AEC_Loan_Schedule_${DateTime.now().millisecondsSinceEpoch}.pdf');
+    await file.writeAsBytes(pdfBytes);
+    await OpenFile.open(file.path);
   }
 
   /// THIS RUNS ON A BACKGROUND CPU CORE
@@ -139,21 +139,36 @@ class PdfReportService {
               0: pw.Alignment.centerLeft,  
               1: pw.Alignment.centerLeft,  
               2: pw.Alignment.centerRight, 
-              3: pw.Alignment.centerRight, 
-              4: pw.Alignment.center,      
+              3: pw.Alignment.centerRight, // Processing Fee
+              4: pw.Alignment.centerRight, // Installment
               5: pw.Alignment.center,      
               6: pw.Alignment.center,      
               7: pw.Alignment.center,      
+              8: pw.Alignment.center,      
             },
             oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
-            headers: ['No.', 'Name', 'Approved Amount\n(UGX)', 'Monthly Installment\n(UGX)', 'Total\nMonths', 'Remaining\nMonths', 'Clearance\nMonth', 'Status'],
+            headers: [
+              'No.', 
+              'Name', 
+              'Approved Amount\n(UGX)', 
+              'Processing\nFee (UGX)', 
+              'Monthly Installment\n(UGX)', 
+              'Total\nMonths', 
+              'Remaining\nMonths', 
+              'Clearance\nMonth', 
+              'Status'
+            ],
             data: [
               ...List<List<String>>.generate(loans.length, (index) {
                 final l = loans[index];
+                final approvedAmount = (l['approved_amount'] as num?)?.toDouble() ?? 0.0;
+                final processingFee = (l['processing_fee'] as num?)?.toDouble() ?? (approvedAmount * 0.005);
+
                 return [
                   (index + 1).toString(),
                   l['name'] ?? 'Unknown',
-                  currency.format(l['approved_amount'] ?? 0),
+                  currency.format(approvedAmount),
+                  currency.format(processingFee),
                   currency.format(l['monthly_installment'] ?? 0),
                   (l['total_months'] ?? 0).toString(),
                   (l['remaining_months'] ?? 0).toString(),
@@ -161,7 +176,17 @@ class PdfReportService {
                   l['status'] ?? 'Running',
                 ];
               }),
-              ['', 'GRAND TOTAL', currency.format(totalAmount), currency.format(totalInstallments), '-', '-', '-', '-']
+              [
+                '', 
+                'GRAND TOTAL', 
+                currency.format(totalAmount), 
+                currency.format(totalProcessingFeesEarned), 
+                currency.format(totalInstallments), 
+                '-', 
+                '-', 
+                '-', 
+                '-'
+              ]
             ],
           ),
         ],
@@ -187,7 +212,6 @@ class PdfReportService {
       'timestamp': DateTime.now().toIso8601String(),
     };
 
-    // Offload string building to background core
     final String csvData = await compute(_buildCsvTask, params);
 
     final output = await getTemporaryDirectory();
@@ -212,7 +236,6 @@ class PdfReportService {
     rows.add(['Total Processing Fees Earned', totalProcessingFeesEarned]);
     rows.add([]); 
 
-    // ADDED: "Processing Fee (UGX)" header
     rows.add([
       'No.', 
       'Applicant Name', 
@@ -229,14 +252,13 @@ class PdfReportService {
       final l = loans[i];
       final approvedAmount = (l['approved_amount'] as num?)?.toDouble() ?? 0.0;
       
-      // Look for mapped processing fee, fallback to accurate mathematical calculation 
       final processingFee = (l['processing_fee'] as num?)?.toDouble() ?? (approvedAmount * 0.005);
 
       rows.add([
         i + 1,
         l['name'] ?? 'Unknown',
         approvedAmount,
-        processingFee, // Output new column
+        processingFee, 
         l['monthly_installment'] ?? 0,
         l['total_months'] ?? 0,
         l['remaining_months'] ?? 0,
@@ -273,10 +295,11 @@ class PdfReportService {
 
     final Uint8List pdfBytes = await compute(_buildAmortizationTask, params);
 
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdfBytes,
-      name: 'Amortization_${applicantName.replaceAll(' ', '_')}.pdf',
-    );
+    // BYPASS PRINT DIALOG: Save to temp folder and open directly
+    final output = await getTemporaryDirectory();
+    final file = File('${output.path}/Amortization_${applicantName.replaceAll(' ', '_')}.pdf');
+    await file.writeAsBytes(pdfBytes);
+    await OpenFile.open(file.path);
   }
 
   /// THIS RUNS ON A BACKGROUND CPU CORE
