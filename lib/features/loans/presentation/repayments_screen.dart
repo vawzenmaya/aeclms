@@ -168,6 +168,7 @@ class _RepaymentsScreenState extends State<RepaymentsScreen> {
                   child: DropdownButton<String>(
                     value: _selectedLoanId,
                     isExpanded: true,
+                    itemHeight: null,
                     dropdownColor: scheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     icon: Padding(
@@ -485,7 +486,7 @@ class _PaymentProgressCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Total Cash Paid (Includes Interest)', 
+                      'Total Loan Paid (Includes Interest)', 
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: scheme.onSurface.withValues(alpha: 0.7)),
                     ),
                   ),

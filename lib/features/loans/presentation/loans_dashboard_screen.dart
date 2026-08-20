@@ -168,6 +168,12 @@ class _LoansDashboardScreenState extends State<LoansDashboardScreen> {
         ),
         centerTitle: true,
         actions: [
+          // NEW: Dedicated Reload button for Desktop users
+          IconButton(
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Reload Dashboard',
+          ),
           IconButton(
             onPressed: () async {
               await Navigator.of(context).push(

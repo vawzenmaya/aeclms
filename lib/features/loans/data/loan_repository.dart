@@ -59,16 +59,30 @@ class LoanRepository {
   Future<List<Map<String, dynamic>>> fetchStageActions(String loanId) async {
     final rows = await _client
         .from('loan_stage_actions')
-        // We use !actor_id to explicitly tell Supabase which relationship to follow
         .select('*, profiles!actor_id(full_name)')
         .eq('loan_id', loanId)
         .order('created_at', ascending: true);
     return List<Map<String, dynamic>>.from(rows);
   }
 
+  /// NEW: Fetches historical repayments and the amortization schedule for a specific loan.
+  /// This is critical for the Top-up / Refinancing Engine to accurately determine
+  /// the remaining balance and structure the new future installments without altering the past.
+  Future<Map<String, dynamic>> fetchLoanHistoryForRefinance(String loanId) async {
+    final response = await _client
+        .from('loans')
+        .select('''
+          amount_requested,
+          duration_months,
+          repayments(amount, created_at),
+          loan_amortization_schedule(period_number, balance, installment, interest, principal)
+        ''')
+        .eq('id', loanId)
+        .single();
+    return response;
+  }
+
   /// Creates the loan row as a draft (or updates it if [existingLoanId] is given).
-  /// Returns the loan id. The database computes installment/fee/DTI server-side —
-  /// call [fetchLoan] after this if you need the authoritative computed values.
   Future<String> saveDraft({
     String? existingLoanId,
     required String applicantId,
@@ -83,13 +97,11 @@ class LoanRepository {
     required double amountRequested,
     required String amountInWords,
     required String purpose,
-    // NEW COLLATERAL FIELD
-    double? savingsBalance,
+    double? savingsBalance, 
     String? securityDescription,
     double? securityEstimatedValue,
-    // NEW DURATION FIELDS
-    required int durationMonths,
-    required DateTime initialRepaymentDate,
+    required int durationMonths, 
+    required DateTime initialRepaymentDate, 
     required DateTime expectedEndDate,
     required double netPay,
     String? guarantorId,
@@ -114,11 +126,11 @@ class LoanRepository {
       'amount_requested': amountRequested,
       'amount_in_words': amountInWords,
       'purpose': purpose,
-      'savings_balance': savingsBalance, // NEW
+      'savings_balance': savingsBalance, 
       'security_description': securityDescription,
       'security_estimated_value': securityEstimatedValue,
-      'duration_months': durationMonths, // NEW
-      'initial_repayment_date': initialRepaymentDate.toIso8601String().split('T').first, // NEW
+      'duration_months': durationMonths, 
+      'initial_repayment_date': initialRepaymentDate.toIso8601String().split('T').first, 
       'expected_end_date': expectedEndDate.toIso8601String().split('T').first,
       'net_pay': netPay,
       'guarantor_id': guarantorId,
@@ -156,9 +168,6 @@ class LoanRepository {
     }
   }
 
-  /// Flips a draft/returned loan into the submission pipeline.
-  /// The database trigger decides whether that means "awaiting_guarantor"
-  /// or straight to "in_review", based on whether guarantor_id is set.
   Future<void> submit(String loanId, {required bool hasGuarantor}) async {
     await _client
         .from('loans')
@@ -170,18 +179,11 @@ class LoanRepository {
     return await _client.from('loans').select().eq('id', loanId).single();
   }
 
-  /// Every loan the current user is allowed to see (RLS already limits this
-  /// to: their own applications, loans awaiting their approval, loans they've
-  /// acted on before, and loans they're the guarantor for).
   Future<List<Map<String, dynamic>>> fetchVisibleLoans() async {
     final rows = await _client.from('loans').select().order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(rows);
   }
 
-  /// (template_id, stage_order) pairs that belong to any role the current
-  /// user holds — used to work out which in_review loans are actually
-  /// awaiting THEIR action right now, vs just visible to them for other
-  /// reasons (applicant, past actor, guarantor).
   Future<Set<String>> fetchMyStageAssignments({
     required String profileId,
     required String communityId,
@@ -200,9 +202,6 @@ class LoanRepository {
     return (stageRows as List).map((s) => '${s['template_id']}:${s['stage_order']}').toSet();
   }
 
-  /// Fetches the workflow_stages row matching a loan's current stage —
-  /// tells you the stage's id (needed to record an action), its name, and
-  /// whether it's the disbursement stage.
   Future<Map<String, dynamic>> fetchCurrentStage(Map<String, dynamic> loan) async {
     return await _client
         .from('workflow_stages')
@@ -212,8 +211,6 @@ class LoanRepository {
         .single();
   }
 
-  /// Deletes a draft or returned application. 
-  /// Uses .select() to verify the row was actually deleted by RLS.
   Future<void> deleteDraft(String loanId) async {
     final response = await _client
         .from('loans')
@@ -230,7 +227,6 @@ class LoanRepository {
     }
   }
 
-  /// The full ordered list of stages for a loan's workflow, for the tracker UI.
   Future<List<Map<String, dynamic>>> fetchAllStages(String templateId) async {
     final rows = await _client
         .from('workflow_stages')
@@ -249,17 +245,17 @@ class LoanRepository {
   }
 
   /// Records an approve/reject action at the loan's current stage.
-  /// [firstDeductionDate] is required only when approving the final
-  /// (disbursement) stage.
+  /// NEW: Added [proofDocumentUrl] to support uploading proof of disbursement.
   Future<void> recordStageAction({
     required String loanId,
     required String stageId,
     required String actorId,
-    required String action, // 'approved' | 'rejected'
+    required String action, 
     String? comment,
     DateTime? firstDeductionDate,
-    String? disbursementMode, // NEW
-    String? chequeNumber,     // NEW
+    String? disbursementMode, 
+    String? chequeNumber,     
+    String? proofDocumentUrl, // <--- NEW PARAMETER
   }) async {
     await _client.from('loan_stage_actions').insert({
       'loan_id': loanId,
@@ -271,6 +267,7 @@ class LoanRepository {
         'first_deduction_date': firstDeductionDate.toIso8601String().split('T').first,
       if (disbursementMode != null) 'disbursement_mode': disbursementMode,
       if (chequeNumber != null && chequeNumber.trim().isNotEmpty) 'cheque_number': chequeNumber,
+      if (proofDocumentUrl != null) 'proof_document_url': proofDocumentUrl, // <--- NEW DB ENTRY
     });
   }
 }

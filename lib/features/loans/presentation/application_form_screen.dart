@@ -270,7 +270,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       }
 
       final loanId = await widget.repository.saveDraft(
-        existingLoanId: widget.existingLoan?['id'] as String?,
+        existingLoanId: _loanType == 'topup' ? _selectedTopUpLoanId : widget.existingLoan?['id'] as String?,
         applicantId: widget.profile.id,
         communityId: widget.profile.communityId!,
         loanType: _loanType,
@@ -381,7 +381,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         actions: [TextButton(onPressed: _saving ? null : _handleSave, child: const Text('Save Draft')), const SizedBox(width: 8)],
         centerTitle: true,
       ),
-      // RESPONSIVE FIX: Center and Constrain the entire body column to 800px max width
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
@@ -564,7 +563,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
                 value: _bankDetailsConfirmed,
                 activeColor: Theme.of(context).colorScheme.primary,
                 onChanged: (v) => setState(() { _bankDetailsConfirmed = v ?? false; if (_bankDetailsConfirmed) _error = null; }),
-                title: Text('I confirm these bank details are accurate and I am the authorized signatory.', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500)),
+                title: Text('I hereby confirm that the bank details provided herein are mine and correct.', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500)),
                 controlAffinity: ListTileControlAffinity.leading,
               ),
             ),
@@ -657,7 +656,24 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
             Text('Repayment Schedule', style: TextStyle(fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.primary)),
             const SizedBox(height: 16),
             
-            _field(_durationMonthsCtrl, 'Loan Period (in months)', icon: Icons.timelapse_rounded, keyboardType: TextInputType.number, formatters: [FilteringTextInputFormatter.digitsOnly], validator: _requiredNumber),
+            // --- FIX: Dynamic Validation & Labeling for Emergency Loans ---
+            _field(
+              _durationMonthsCtrl, 
+              _loanCategory == 'emergency' ? 'Loan Period (Max 3 months)' : 'Loan Period (in months)', 
+              icon: Icons.timelapse_rounded, 
+              keyboardType: TextInputType.number, 
+              formatters: [FilteringTextInputFormatter.digitsOnly], 
+              validator: (v) {
+                final req = _requiredNumber(v);
+                if (req != null) return req;
+                final m = int.tryParse(v!.replaceAll(',', ''));
+                if (m != null && _loanCategory == 'emergency' && m > 3) {
+                  return 'Emergency loans cannot exceed a maximum of 3 months.';
+                }
+                return null;
+              }
+            ),
+            
             _DatePickerField(label: 'Initial Repayment Date', value: _initialRepaymentDate, onTap: _pickInitialRepaymentDate),
             
             if (_expectedEndDate != null)

@@ -1,8 +1,12 @@
 // lib/features/documents/presentation/documents_section.dart
 
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/widgets/custom_loader.dart';
 import '../data/documents_repository.dart';
@@ -32,6 +36,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
   bool _loading = true;
   bool _uploading = false;
   String? _deletingId; 
+  String? _downloadingId; // Track which file is being downloaded
   String? _error;
 
   Map<String, String> get _docTypes => {
@@ -84,23 +89,24 @@ class _DocumentsSectionState extends State<DocumentsSection> {
     final docType = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
-      isScrollControlled: true, // FIX 1: Allows the bottom sheet to expand beyond 50% of the screen height
+      isScrollControlled: true, 
       builder: (context) => _DocumentTypeSelector(availableTypes: availableTypes),
     );
     
     if (docType == null) return;
 
-    final result = await FilePicker.pickFiles(
+    final file = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-      withData: true,
     );
     
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.single;
+    if (file == null) return;
     
-    if (file.bytes == null) {
-      setState(() => _error = 'Could not read the selected file.');
+    Uint8List bytes;
+    try {
+      bytes = await file.readAsBytes(); 
+    } catch (e) {
+      setState(() => _error = 'Could not read the selected file: $e');
       return;
     }
 
@@ -114,7 +120,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
         loanId: widget.loanId,
         docType: docType,
         fileName: file.name,
-        bytes: file.bytes!,
+        bytes: bytes,
         uploadedBy: widget.uploadedBy,
       );
       await _load();
@@ -125,17 +131,35 @@ class _DocumentsSectionState extends State<DocumentsSection> {
     }
   }
 
+  // NEW BACKGROUND DOWNLOAD & NATIVE OPENER (HIDES SUPABASE URLS)
   Future<void> _openDocument(LoanDocument doc) async {
+    setState(() {
+      _downloadingId = doc.id;
+      _error = null;
+    });
+
     try {
-      final url = await widget.repository.getSignedUrl(doc.storagePath);
-      final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        setState(() => _error = 'Could not open this document.');
+      // 1. Download bytes directly from Supabase to memory
+      final Uint8List bytes = await Supabase.instance.client
+          .storage
+          .from('loan-documents')
+          .download(doc.storagePath);
+
+      // 2. Save it to the device's temporary cache directory
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/${doc.fileName}');
+      await file.writeAsBytes(bytes, flush: true);
+
+      // 3. Open it natively on Windows/Android
+      final result = await OpenFile.open(file.path);
+      
+      if (result.type != ResultType.done) {
+        setState(() => _error = 'No app installed to view this file type.');
       }
     } catch (e) {
-      setState(() => _error = 'Error opening document: $e');
+      setState(() => _error = 'Failed to download document. Please check your connection.');
+    } finally {
+      if (mounted) setState(() => _downloadingId = null);
     }
   }
 
@@ -286,6 +310,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
               itemBuilder: (context, index) {
                 final d = _docs[index];
                 final isDeleting = _deletingId == d.id;
+                final isDownloading = _downloadingId == d.id;
                 final isPdf = d.fileName.toLowerCase().endsWith('.pdf');
                 
                 return Container(
@@ -333,14 +358,16 @@ class _DocumentsSectionState extends State<DocumentsSection> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            onPressed: isDeleting ? null : () => _openDocument(d),
-                            icon: const Icon(Icons.visibility_outlined),
+                            onPressed: (isDeleting || isDownloading) ? null : () => _openDocument(d),
+                            icon: isDownloading 
+                                ? CustomLoader(size: 18, color: scheme.primary)
+                                : const Icon(Icons.visibility_outlined),
                             color: scheme.primary,
                             tooltip: 'View Document',
                           ),
                           if (widget.canUpload)
                             IconButton(
-                              onPressed: isDeleting ? null : () => _deleteDocument(d),
+                              onPressed: (isDeleting || isDownloading) ? null : () => _deleteDocument(d),
                               icon: isDeleting 
                                   ? const CustomLoader(size: 18, color: Color(0xFFD9534F))
                                   : const Icon(Icons.delete_outline_rounded),
@@ -387,7 +414,6 @@ class _DocumentTypeSelector extends StatelessWidget {
             Text('What kind of file are you uploading?', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 24),
             
-            // FIX 2: Wrapped the ListView in a Flexible so it can scroll instead of overflowing
             Flexible(
               child: ListView.builder(
                 shrinkWrap: true,

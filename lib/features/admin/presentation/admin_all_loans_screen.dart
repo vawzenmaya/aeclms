@@ -86,12 +86,24 @@ class _AdminAllLoansScreenState extends State<AdminAllLoansScreen> {
     _fetchAllSystemLoans(); // Refresh when returning
   }
 
-  // Gets the currently filtered list
+  // Gets the currently filtered list by grouping database statuses logically
   List<Map<String, dynamic>> get _filteredLoans {
     return _allLoans.where((loan) {
       if (_selectedFilter == 'all') return true;
-      if (_selectedFilter == 'pending') return loan['status'] == 'in_review';
-      return loan['status'] == _selectedFilter;
+      
+      final dbStatus = (loan['status'] as String? ?? '').toLowerCase();
+      
+      if (_selectedFilter == 'running') {
+        return ['approved', 'active', 'disbursed', 'completed'].contains(dbStatus);
+      }
+      if (_selectedFilter == 'cleared') {
+        return dbStatus == 'cleared';
+      }
+      if (_selectedFilter == 'pending') {
+        return ['in_review', 'awaiting_guarantor'].contains(dbStatus);
+      }
+      
+      return dbStatus == _selectedFilter;
     }).toList();
   }
 
@@ -105,6 +117,7 @@ class _AdminAllLoansScreenState extends State<AdminAllLoansScreen> {
       double totalFees = 0.0;
 
       for (var loan in loansToPrint) {
+        final dbStatus = (loan['status'] as String? ?? '').toLowerCase();
         final repayments = (loan['repayments'] as List?) ?? [];
         final amountRequested = (loan['amount_requested'] as num?)?.toDouble() ?? 0.0;
         final totalMonths = loan['duration_months'] as int? ?? 0;
@@ -126,13 +139,14 @@ class _AdminAllLoansScreenState extends State<AdminAllLoansScreen> {
           'clearance_month': loan['expected_end_date'] != null 
               ? DateFormat('MMM yyyy').format(DateTime.parse(loan['expected_end_date'])) 
               : '-',
-          'status': loan['status'] == 'cleared' ? 'Cleared' : (['approved', 'active', 'completed'].contains(loan['status']) ? 'Running' : 'Pending'),
+          'status': dbStatus == 'cleared' ? 'Cleared' : (['approved', 'active', 'completed', 'disbursed'].contains(dbStatus) ? 'Running' : 'Pending'),
         });
       }
 
       String filterLabel = 'All';
-      if (_selectedFilter == 'approved') filterLabel = 'Running';
+      if (_selectedFilter == 'running') filterLabel = 'Running';
       if (_selectedFilter == 'cleared') filterLabel = 'Cleared';
+      if (_selectedFilter == 'pending') filterLabel = 'Pending';
 
       await PdfReportService.generateMasterSchedule(
         reportMonth: DateFormat('MMMM yyyy').format(DateTime.now()),
@@ -189,7 +203,7 @@ class _AdminAllLoansScreenState extends State<AdminAllLoansScreen> {
                   child: Row(
                     children: [
                       _FilterChip(label: 'All Loans', value: 'all', groupValue: _selectedFilter, onChanged: (v) => setState(() => _selectedFilter = v)),
-                      _FilterChip(label: 'Active / Running', value: 'approved', groupValue: _selectedFilter, onChanged: (v) => setState(() => _selectedFilter = v)),
+                      _FilterChip(label: 'Active / Running', value: 'running', groupValue: _selectedFilter, onChanged: (v) => setState(() => _selectedFilter = v)),
                       _FilterChip(label: 'Cleared', value: 'cleared', groupValue: _selectedFilter, onChanged: (v) => setState(() => _selectedFilter = v)),
                       _FilterChip(label: 'Pending', value: 'pending', groupValue: _selectedFilter, onChanged: (v) => setState(() => _selectedFilter = v)),
                     ],
@@ -253,7 +267,9 @@ class _AdminAllLoansScreenState extends State<AdminAllLoansScreen> {
                                     
                                     String applicantName = loan['profiles']?['full_name'] ?? 'Unknown Applicant';
                                     final dateStr = loan['created_at'] != null ? DateFormat('MMM dd, yyyy').format(DateTime.parse(loan['created_at'])) : 'Unknown Date';
-                                    final isCleared = loan['status'] == 'cleared' || loan['status'] == 'completed';
+                                    
+                                    final dbStatus = (loan['status'] as String? ?? '').toLowerCase();
+                                    final isCleared = dbStatus == 'cleared' || dbStatus == 'completed';
           
                                     return _StaggeredFadeIn(
                                       index: index,
@@ -319,7 +335,7 @@ class _AdminAllLoansScreenState extends State<AdminAllLoansScreen> {
                                                   ),
           
                                                   // ONLY SHOW PROGRESS IF IT IS AN ACTIVE OR CLEARED LOAN
-                                                  if (['approved', 'active', 'cleared', 'completed', 'disbursed'].contains(loan['status'])) ...[
+                                                  if (['approved', 'active', 'cleared', 'completed', 'disbursed'].contains(dbStatus)) ...[
                                                     const SizedBox(height: 20),
                                                     
                                                     // PROGRESS BAR

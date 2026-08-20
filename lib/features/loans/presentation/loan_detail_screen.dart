@@ -1,10 +1,12 @@
 // lib/features/loans/presentation/loan_detail_screen.dart
 
+import 'dart:typed_data';
 import 'package:aeclms/core/widgets/custom_loader.dart';
 import 'package:aeclms/features/loans/utils/loan_form_pdf_service.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart'; 
+import 'package:file_picker/file_picker.dart';
 
 import '../../auth/data/auth_service.dart';
 import '../../documents/data/documents_repository.dart';
@@ -141,6 +143,23 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
 
     setState(() => _acting = true);
     try {
+      // 1. If it's a disbursement and they provided a proof document, upload it first!
+      String? proofPath;
+      if (isDisbursement && result['proofBytes'] != null) {
+        final fileName = result['proofFileName'] as String;
+        final bytes = result['proofBytes'] as Uint8List;
+        
+        await _documentsRepo.upload(
+          loanId: widget.loanId, 
+          docType: 'proof_of_disbursement', 
+          fileName: fileName, 
+          bytes: bytes, 
+          uploadedBy: widget.profile.id,
+        );
+        proofPath = '${widget.loanId}/$fileName'; // Mark it for the action recorder
+      }
+
+      // 2. Record the final action
       await widget.repository.recordStageAction(
         loanId: widget.loanId,
         stageId: _currentStage!['id'] as String,
@@ -149,11 +168,14 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         comment: result['comment'],
         firstDeductionDate: result['date'],
         disbursementMode: result['disbursementMode'], 
-        chequeNumber: result['chequeNumber'],         
+        chequeNumber: result['chequeNumber'],
+        proofDocumentUrl: proofPath, // Will be null if not a disbursement
       );
       await _load();
     } on PostgrestException catch (e) {
       setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = 'An unexpected error occurred during processing: $e');
     } finally {
       if (mounted) setState(() => _acting = false);
     }
@@ -164,6 +186,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
     final chequeCtrl = TextEditingController();
     DateTime? selectedDate = isDisbursement ? DateTime.now().add(const Duration(days: 30)) : null;
     String? disbursementMode;
+    
+    // Proof of disbursement state
+    Uint8List? proofBytes;
+    String? proofFileName;
+    
     bool isSubmitEnabled = false;
 
     return showModalBottomSheet<Map<String, dynamic>>(
@@ -180,8 +207,25 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
              if (isDisbursement && !isReject) {
                  if (disbursementMode == null) valid = false;
                  if (disbursementMode == 'Cheque' && chequeCtrl.text.trim().isEmpty) valid = false;
+                 if (proofBytes == null) valid = false; // MUST HAVE PROOF UPLOADED!
              }
              setSheetState(() => isSubmitEnabled = valid);
+          }
+
+          Future<void> pickProofDocument() async {
+            final file = await FilePicker.pickFile(
+              type: FileType.custom,
+              allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
+            );
+
+            if (file != null) {
+              final bytes = await file.readAsBytes();
+              setSheetState(() {
+                proofBytes = bytes;
+                proofFileName = file.name;
+              });
+              validate();
+            }
           }
 
           return Container(
@@ -190,7 +234,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
               color: scheme.surface,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             ),
-            // RESPONSIVE: Constrain the modal content width as well
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
@@ -310,6 +353,61 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                             ),
                           ),
                         ],
+
+                        // ==========================================
+                        // NEW: PROOF OF DISBURSEMENT UPLOAD
+                        // ==========================================
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: proofBytes == null 
+                                ? const Color(0xFFE9A63C).withValues(alpha: 0.1) 
+                                : const Color(0xFF58B982).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: proofBytes == null 
+                                  ? const Color(0xFFE9A63C).withValues(alpha: 0.3) 
+                                  : const Color(0xFF58B982).withValues(alpha: 0.3)
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    proofBytes == null ? Icons.warning_rounded : Icons.check_circle_rounded, 
+                                    color: proofBytes == null ? const Color(0xFFE9A63C) : const Color(0xFF58B982)
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Proof of Disbursement (Required)', 
+                                    style: TextStyle(fontWeight: FontWeight.w800, color: scheme.onSurface)
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Upload a transaction receipt, EFT screenshot, or scanned cheque copy to authorize the final payout.',
+                                style: TextStyle(fontSize: 12, color: scheme.onSurface.withValues(alpha: 0.7)),
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: pickProofDocument,
+                                  icon: Icon(proofBytes == null ? Icons.upload_file_rounded : Icons.autorenew_rounded),
+                                  label: Text(proofBytes == null ? 'Select Document (PDF/Image)' : 'Change File: $proofFileName'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    side: BorderSide(color: proofBytes == null ? const Color(0xFFE9A63C) : const Color(0xFF58B982)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
               
                       const SizedBox(height: 32),
@@ -323,6 +421,8 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
                                 'date': selectedDate,
                                 'disbursementMode': disbursementMode,
                                 'chequeNumber': chequeCtrl.text.trim(),
+                                'proofBytes': proofBytes, // Pass bytes to outer function for upload
+                                'proofFileName': proofFileName,
                               }) 
                             : null,
                           style: FilledButton.styleFrom(
@@ -453,7 +553,11 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           IconButton(
             icon: const Icon(Icons.print_outlined),
             tooltip: 'Print Application Form',
-            onPressed: () => LoanFormPdfService.generateInitialApplicationForm(loan: loan),
+            onPressed: () => LoanFormPdfService.generateInitialApplicationForm(
+              loan: loan,
+              stages: _allStages,
+              actions: _stageActions,
+            ),
           ),
           if (['approved', 'active', 'cleared', 'disbursed', 'completed'].contains((loan['status'] as String? ?? '').toLowerCase()))
             IconButton(
@@ -468,7 +572,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      // RESPONSIVE: Center and constrain the whole column body for desktop views
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
@@ -614,7 +717,6 @@ class _LoanDetailScreenState extends State<LoanDetailScreen> {
         ? '${((loan['debt_to_income_ratio'] as num) * 100).toStringAsFixed(1)}%'
         : 'N/A';
         
-    // Formatting numbers with commas
     final currency = NumberFormat("#,##0", "en_US");
 
     return Row(

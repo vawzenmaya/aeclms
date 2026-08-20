@@ -71,9 +71,19 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
                           Icon(Icons.gavel_rounded, color: scheme.primary, size: 28),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: Text(
-                              'Atomic Energy Council Investment Club',
-                              style: TextStyle(fontWeight: FontWeight.w800, color: scheme.primary, fontSize: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Atomic Energy Council Investment Club',
+                                  style: TextStyle(fontWeight: FontWeight.w800, color: scheme.primary, fontSize: 16),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Rules governing members who wish to take credit.',
+                                  style: TextStyle(fontWeight: FontWeight.w600, color: scheme.primary.withValues(alpha: 0.8), fontSize: 13),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -81,20 +91,33 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
                     ),
                     const SizedBox(height: 24),
                     
-                    Text('1. Eligibility & Requirements', style: _headerStyle(scheme)),
-                    _paragraph('• A borrower must provide a signed employment contract.\n• You must secure one guarantor who is currently a member of the AEC investment club.'),
+                    Text('1. Eligibility & Documentation', style: _headerStyle(scheme)),
+                    _paragraph(
+                      '• A borrower shall get one guarantor who is also a member of the AEC investment club.\n'
+                      '• A member, who would like to take a loan, shall provide a signed employment contract and an appointment letter.'
+                    ),
                     
-                    Text('2. Interest & Repayment Rules', style: _headerStyle(scheme)),
-                    _paragraph('• The annual interest rate for members is 10%, which is charged using the reducing balance method.\n• The loan repayment period shall not exceed your remaining contract period.\n• If you choose to prepay the loan before the agreed time, you will refund 10% of the principal of the remaining balance.'),
+                    Text('2. Interest Rates & Limits', style: _headerStyle(scheme)),
+                    _paragraph(
+                      '• Annual Interest rate for members is 10% to be charged on reducing balance method.\n'
+                      '• Annual interest rate for members taking emergency loan is 4% charged on reducing balance method.\n'
+                      '• A borrower can get up to a maximum determined during loan assessment by the Credit committee.\n'
+                      '• No top ups shall be allowed for Emergency loans.'
+                    ),
         
-                    Text('3. Salary Deduction Consent', style: _headerStyle(scheme)),
-                    _paragraph('• The loan payment will automatically be deducted from your monthly salary.\n• By agreeing to this, you voluntarily authorize this deduction from your monthly net salary pursuant to Section 46 (1) (b) of the Employment Act 2006.'),
+                    Text('3. Repayment & Deductions', style: _headerStyle(scheme)),
+                    _paragraph(
+                      '• The loan payment will automatically be deducted from one’s monthly salary.\n'
+                      '• A borrower’s repayment period shall not exceed his/her remaining contract period, for loans above the members savings.\n'
+                      '• A borrower’s maximum repayment period shall not exceed 5 years for loans below the members available savings.\n'
+                      '• For members taking emergency loans, the total repayment amount shall not exceed 40% of the members salary net pay. And the maximum repayment period shall be 3 months.'
+                    ),
         
-                    Text('4. Default & Late Penalties', style: _headerStyle(scheme)),
-                    _paragraph('• Any payment not remunerated within ten (10) days of its due date shall be subject to a late charge of 5% of the payment.\n• If you fail to make payments on time, the club can demand instant payment of the entire remaining unpaid balance without further notice.\n• If the full amount is not paid when the final payment is due, you will be charged interest on the unpaid balance at 6% per week.\n• If placed with a legal representative for collection, you agree to pay an attorney\'s fee of fifteen percent (15%) of the voluntary balance.'),
-        
-                    Text('5. Accountability & Membership', style: _headerStyle(scheme)),
-                    _paragraph('• Any guarantor signing the agreement is likewise accountable with the borrower for the loan.\n• If you cease membership to the Investment Club before full repayment, the club will automatically deduct the outstanding loan balance from your Savings.'),
+                    Text('4. Approvals & Membership Status', style: _headerStyle(scheme)),
+                    _paragraph(
+                      '• Approval of the loan payment shall be done by the accounting officer of AEC in addition to the persons mentioned in the constitution after consideration from the loan and credit committee.\n'
+                      '• For a borrower who ceases membership to the Investment Club before full repayment of the loan, the club will deduct the outstanding loan balance from his/her Savings.'
+                    ),
                   ],
                 ),
               ),
@@ -127,7 +150,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'I have read, understood, and agree to the Club\'s terms, conditions, and salary deduction policies.',
+                              'I have read and understood the rules governing the acquisition of the loan from the club.',
                               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.8)),
                             ),
                           ),

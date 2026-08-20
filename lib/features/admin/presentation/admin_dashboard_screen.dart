@@ -209,7 +209,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                   child: _StatCard(
                                     title: 'Total Fees Earned',
                                     value: 'UGX ${currency.format(_totalProcessingFees)}',
-                                    subtitle: 'From processing fees',
+                                    subtitle: 'From Loan Processing Fees',
                                     icon: Icons.account_balance_wallet_rounded,
                                     color: const Color(0xFF58B982),
                                   ),

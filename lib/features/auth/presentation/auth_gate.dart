@@ -1,9 +1,4 @@
 // lib/features/auth/presentation/auth_gate.dart
-//
-// Listens to the Supabase auth session and decides what to show:
-//  - no session            -> LoginScreen
-//  - session, no community -> PendingAssignmentScreen (needs admin setup)
-//  - session, has community -> HomePlaceholderScreen (real dashboard comes later)
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -47,29 +42,100 @@ class _AuthGateState extends State<AuthGate> {
           future: widget.authService.fetchCurrentProfile(),
           builder: (context, profileSnapshot) {
             if (profileSnapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(body: Center(child: CircularProgressIndicator()));
-            }
-
-            if (profileSnapshot.hasError) {
               return Scaffold(
                 backgroundColor: Theme.of(context).colorScheme.surface,
                 body: Center(
+                  child: CircularProgressIndicator(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              );
+            }
+
+            if (profileSnapshot.hasError) {
+              final scheme = Theme.of(context).colorScheme;
+              final errorStr = profileSnapshot.error.toString().toLowerCase();
+              
+              // Detect if the error is a network/offline issue
+              final isOffline = errorStr.contains('socketexception') || 
+                                errorStr.contains('failed host lookup') || 
+                                errorStr.contains('network');
+
+              return Scaffold(
+                backgroundColor: scheme.surface,
+                body: Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
-                        const SizedBox(height: 12),
-                        const Text('Could not load your profile:'),
-                        const SizedBox(height: 8),
-                        Text('${profileSnapshot.error}', textAlign: TextAlign.center),
-                        const SizedBox(height: 16),
-                        OutlinedButton(
-                          onPressed: () => widget.authService.signOut(),
-                          child: const Text('Log out'),
-                        ),
-                      ],
+                    padding: const EdgeInsets.all(32),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD9534F).withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isOffline ? Icons.wifi_off_rounded : Icons.error_outline_rounded, 
+                              size: 56, 
+                              color: const Color(0xFFD9534F),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            isOffline ? 'No Internet Connection' : 'Profile Load Failed',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: scheme.onSurface,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            isOffline 
+                                ? 'It looks like you are offline. Please check your network connection and try again.'
+                                : 'An unexpected error occurred while loading your profile data.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: scheme.onSurface.withValues(alpha: 0.7),
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => widget.authService.signOut(),
+                                  icon: const Icon(Icons.logout_rounded),
+                                  label: const Text('Log out'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: FilledButton.icon(
+                                  // Calling setState rebuilds the AuthGate, which re-triggers the FutureBuilder
+                                  onPressed: () => setState(() {}),
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  label: const Text('Retry'),
+                                  style: FilledButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
